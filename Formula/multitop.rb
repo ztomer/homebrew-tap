@@ -1,8 +1,8 @@
 class Multitop < Formula
   desc "Multi-server TUI dashboard — SSH into servers, watch system stats side by side"
   homepage "https://github.com/ztomer/multitop"
-  url "https://github.com/ztomer/multitop/archive/refs/tags/v0.46.0.tar.gz"
-  sha256 "6914b2d1041ec7f9509564ad37e72c28eae4d65fb0464f174cac5dca7724f550"
+  url "https://github.com/ztomer/multitop/archive/refs/tags/v0.46.1.tar.gz"
+  sha256 "d4ff871e693728458eaa7e4390e4f370098113789c6b9109f068696a11d1ad2e"
   license "MIT"
   head "https://github.com/ztomer/multitop.git", branch: "main"
 
