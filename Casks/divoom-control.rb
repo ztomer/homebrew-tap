@@ -12,10 +12,8 @@ cask "divoom-control" do
 
   app "Divoom.app"
 
-  postflight do
-    system_command "xattr",
-                   args: ["-rd", "com.apple.quarantine", "#{appdir}/Divoom.app"],
-                   sudo: false
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-rd", "com.apple.quarantine", "{{appdir}}/Divoom.app"]
   end
 
   # A clean upgrade/uninstall must stop everything the app spawns. Homebrew runs

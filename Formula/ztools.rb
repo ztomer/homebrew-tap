@@ -1,8 +1,8 @@
 class Ztools < Formula
-  desc "Local LLM tools: weekend planner, twitter summarizer, model eval (native Rust port)"
+  desc "Local LLM tools: weekend planner, twitter summarizer, model eval"
   homepage "https://github.com/ztomer/ztools"
-  url "https://github.com/ztomer/ztools/archive/refs/tags/v2.2.1.tar.gz"
-  sha256 "ef0de950219cab03bfb5510ff4240d20e8dc542127efe5dbe559364ed1e9137a"
+  url "https://github.com/ztomer/ztools/archive/refs/tags/v2.3.0.tar.gz"
+  sha256 "46f69de3a5c46ca29c78a477eefe534e3ab5e2f3df6574918a39c6fd347afe8a"
   license "MIT"
   head "https://github.com/ztomer/ztools.git", branch: "main"
 
@@ -22,10 +22,10 @@ class Ztools < Formula
   end
 
   test do
-    assert_match "usage", shell_output("#{bin}/ztools --help")
-    assert_match "usage", shell_output("#{bin}/weekend --help")
-    assert_match "usage", shell_output("#{bin}/twitter --help")
-    assert_match "usage", shell_output("#{bin}/oeval --help")
-    assert_match "usage", shell_output("#{bin}/rename_images --help")
+    assert_match "Usage", shell_output("#{bin}/ztools --help")
+    assert_match "Usage", shell_output("#{bin}/weekend --help")
+    assert_match "Usage", shell_output("#{bin}/twitter --help")
+    assert_match "Usage", shell_output("#{bin}/oeval --help")
+    assert_match "Usage", shell_output("#{bin}/rename_images --help")
   end
 end
