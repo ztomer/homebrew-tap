@@ -7,8 +7,8 @@ cask "divoom-control" do
   desc "Control center for Divoom pixel displays (Pixoo/Tivoo/Ditoo/Timoo) over BLE+LAN"
   homepage "https://github.com/ztomer/divoom_control"
 
-  depends_on macos: :big_sur
   depends_on arch: :arm64
+  depends_on macos: :big_sur
 
   app "Divoom.app"
 
