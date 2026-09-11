@@ -1,6 +1,6 @@
 cask "antiknob" do
-  version "0.12.2"
-  sha256 "2bbc9a65c6232f2d1c5ad8003dedbc5fdcf076a260dd84e70f33fd7ac2d2dc92"
+  version "0.14.0"
+  sha256 "4e68591ddef8746121f45052d82ae7728e20adc193579a09f1109eefb1f5ae8c"
 
   url "https://github.com/ztomer/antiknob/releases/download/v#{version}/Antiknob-v#{version}-aarch64.dmg"
   name "Antiknob"
