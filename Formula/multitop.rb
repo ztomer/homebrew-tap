@@ -1,8 +1,8 @@
 class Multitop < Formula
   desc "Multi-server TUI dashboard — SSH into servers, watch system stats side by side"
   homepage "https://github.com/ztomer/multitop"
-  url "https://github.com/ztomer/multitop/archive/refs/tags/v0.47.3.tar.gz"
-  sha256 "30ac503200415c7a02f1a43dccdc0b4d2c2be7056d8cb4eb25bf336f1a436464"
+  url "https://github.com/ztomer/multitop/archive/refs/tags/v0.48.0.tar.gz"
+  sha256 "9fd3589a90924ca16b3e0053743749d3aa4afc8144543adcf1e80591cca21e4d"
   license "MIT"
   head "https://github.com/ztomer/multitop.git", branch: "main"
 
@@ -15,12 +15,12 @@ class Multitop < Formula
   # which these do. Bump these URLs + shas with every version bump.
   resource "multitop-agent-x86_64" do
     url "https://github.com/ztomer/multitop/releases/download/v0.47.3/multitop-agent-x86_64-unknown-linux-musl"
-    sha256 "cb186f661db39f54d53f33e36bd19d87578066f68b4f15b6bfb2f07956de9943"
+    sha256 "9fd3589a90924ca16b3e0053743749d3aa4afc8144543adcf1e80591cca21e4d"
   end
 
   resource "multitop-agent-aarch64" do
     url "https://github.com/ztomer/multitop/releases/download/v0.47.3/multitop-agent-aarch64-unknown-linux-musl"
-    sha256 "7116f60ccdf09d2b60e634f78617368e2b2e48cdd3b579b2e8f518b292f7f6ea"
+    sha256 "9fd3589a90924ca16b3e0053743749d3aa4afc8144543adcf1e80591cca21e4d"
   end
 
   def install
