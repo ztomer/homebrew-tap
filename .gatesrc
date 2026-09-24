@@ -11,3 +11,9 @@ GOH_MAX_LINES=500                 # file-length cap; unset disables the check
 # GOH_SWIFT_COV_MIN=95
 # GOH_MAX_SCRATCH_GB=25 etc. live OUTSIDE the gates since v0.8.0 — set them
 # in the environment for ~/Projects/scripts/bin/disk_hygiene.sh, not here.
+
+# No process kill by name (gates_of_heck check_no_kill_by_name.py, 2026-09-23).
+# A name matches processes this repo does not own. Today's survivors are in
+# kill_by_name_allow.json (1 entries, 1 unreviewed); a new kill by
+# name fails, and a fixed one must take its entry with it.
+GOH_NO_KILL_BY_NAME=1
