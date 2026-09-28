@@ -14,12 +14,12 @@ class Multitop < Formula
   # build.rs hard-gates that an embedded agent matches the workspace version,
   # which these do. Bump these URLs + shas with every version bump.
   resource "multitop-agent-x86_64" do
-    url "https://github.com/ztomer/multitop/releases/download/v0.47.3/multitop-agent-x86_64-unknown-linux-musl"
+    url "https://github.com/ztomer/multitop/releases/download/v0.49.0/multitop-agent-x86_64-unknown-linux-musl"
     sha256 "5c736143f2446b583a50fdf232b44dd11843c2eba1cad6eb6dbd5014dd0feb42"
   end
 
   resource "multitop-agent-aarch64" do
-    url "https://github.com/ztomer/multitop/releases/download/v0.47.3/multitop-agent-aarch64-unknown-linux-musl"
+    url "https://github.com/ztomer/multitop/releases/download/v0.49.0/multitop-agent-aarch64-unknown-linux-musl"
     sha256 "608baaa56574471bb71052e0da52ae58aef5062c24220bd484120fa0040e6859"
   end
 
