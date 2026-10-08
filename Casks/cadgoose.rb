@@ -1,6 +1,6 @@
 cask "cadgoose" do
-  version "1.77"
-  sha256 "9f847ad98f48b31d0f831a7232a854a9d9dd71adbc6874ac5be573339811c987"
+  version "1.81"
+  sha256 "0e00b585a04261082223fff22e705bba824df8c24e035920c3ede77b0abb1084"
 
   url "https://github.com/ztomer/CadGoose/releases/download/v#{version}/CadGoose-v#{version}.dmg"
   name "CadGoose"
