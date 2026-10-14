@@ -25,21 +25,9 @@ The ONE forward-looking plan for this tap (house rule #16). Completed work lives
 - Apple silicon only: every cask carries `depends_on arch: :arm64` (house rule: 64-bit, macOS
   Apple silicon only).
 
-## Phase 0: wire in goh 0.27.0 (S, under an hour)
+## Phase 0: wire in goh 0.27.0 -- closed
 
-Goal: `tools/gate.sh --full` green at HEAD and pushed, with every scanner's floor declared. Exit:
-`.gatesrc` sets the floors below, the gate prints no `[subject]` line, and `origin/main` = `main`.
-
-Measured 2026-10-14 (`tools/gate.sh --full`, under 1 s): green, no red step. One advisory line.
-
-- **P0.1 scanner floors.** Structural ends with `[subject] 10 scanner(s) declare no floor in
-  .gatesrc …; this run read: GOH_EMOJI_MIN_FILES=21 GOH_CONFLICT_MARKERS_MIN_FILES=21
-  GOH_FILE_LENGTH_MIN_FILES=6 GOH_SECRETS_MIN_FILES=21 GOH_SHELL_LINT_MIN_FILES=1
-  GOH_EARLY_EXIT_PIPE_MIN_FILES=6 GOH_DEAD_AFTER_EXEC_MIN_FILES=6 GOH_BARE_HOOK_INDEX_MIN_FILES=6
-  GOH_BARE_PYTHON_MIN_FILES=6 GOH_MD_LINKS_MIN_LINKS=6`. Paste each at or a little under its count
-  (the tree is small: the count itself, or one under). Accept: the `[subject]` line is gone, and one
-  floor raised one above its count turns `every scanner read its declared subject` red naming the
-  key; then put it back. Size S.
+- P0.1 scanner floors: `1fe5f7e`.
 
 ## Phase 1: gate holes (S, one session)
 
