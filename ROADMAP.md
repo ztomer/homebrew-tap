@@ -33,13 +33,35 @@ The ONE forward-looking plan for this tap (house rule #16). Completed work lives
 
 Goal: a wrong formula or cask cannot reach `origin` silently.
 
-- **T1.1 Tap consistency gate.** Add `tools/repo_gates.sh` (wired from `tools/gate.sh --full`) that
-  checks, per file: every `resource` URL names the same tag as the main `url`/`version` (the
-  `a0a1f59` class: multitop 0.49.0 shipped with agent resources pointed at v0.47.3), no two
-  `sha256` lines in one file are equal (resource sha copied from the tarball), and file ends with a
-  newline. Proof: a fixture with a mismatched resource tag and one with a duplicated sha both go
-  red for their named reason. This is now load-bearing, not hygiene: goh's `tap_bump.sh` (below)
-  produces exactly both defects on today's files, and this gate is the one it runs.
+- **T1.1 Tap consistency gate — DONE.** `tools/tap_consistency.sh` is a `GOH_CI_STEPS`
+  step checking, per file, with each defect failing for its OWN reason:
+
+  1. every `url` pins the version the file **declares** — the literal tag, or `#{version}`
+     interpolation, which a Cask uses and which cannot drift by construction. A url with no
+     tag at all (`/latest/`, a bare branch) is red: a moving target in a versioned tap.
+  2. no two `sha256` lines in one file are equal (a resource sha copied from the tarball's).
+  3. the file ends with a newline.
+
+  **(1) is the `a0a1f59` class**: multitop 0.49.0 shipped with both agent `resource` URLs
+  still naming v0.47.3, the formula looked bumped, and the artifacts were three releases
+  stale. goh's `tap_bump.sh` produces this and (2) on today's files, which is what makes
+  this load-bearing rather than hygiene.
+
+  **It found three real defects on the tree the day it landed**: `Casks/antiknob.rb`,
+  `Casks/divoom-control.rb` and `Formula/multitop.rb` all lacked a trailing newline. Fixed
+  in the same commit — the gate is not "added and green", it is "added, went red three
+  times, and those are fixed".
+
+  Proved per defect, on the named shape: a resource URL moved to `v0.47.3` goes red with
+  `url names v0.47.3 but the file declares 0.55.0 (a0a1f59)`; a duplicated sha goes red with
+  the sha quoted; a missing newline goes red. Two version SHAPES exist here — CadGoose ships
+  `1.81`, the others `0.15.1` — and the first draft's three-component pattern called the
+  2-component cask unversioned, which is a gate crying wolf on a correct file.
+
+  The gate also refused this repo's own first draft for `sed … | head -1` (an early-exit
+  consumer under pipefail) — the house shape is `sed … > tmp; head -n1 < tmp`, which is
+  what it now does.
+
 - **T1.2 `brew style` in the gate**, then fix the 4 offenses it reports. Proof: gate red on today's
   tree, green after the fix. Risk: `brew style` needs the Homebrew Ruby; skip-with-reason when
   `brew` is absent, never pass silently.
