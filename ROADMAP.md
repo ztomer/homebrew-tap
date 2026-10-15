@@ -62,9 +62,27 @@ Goal: a wrong formula or cask cannot reach `origin` silently.
   consumer under pipefail) — the house shape is `sed … > tmp; head -n1 < tmp`, which is
   what it now does.
 
-- **T1.2 `brew style` in the gate**, then fix the 4 offenses it reports. Proof: gate red on today's
-  tree, green after the fix. Risk: `brew style` needs the Homebrew Ruby; skip-with-reason when
-  `brew` is absent, never pass silently.
+- **T1.2 `brew style` in the gate — DONE.** `tools/brew_style.sh` is a `GOH_CI_STEPS`
+  step, and it wraps the call rather than being a bare step, because `brew style` needs
+  Homebrew's Ruby and cannot be one of the shell checks. The rule the item states —
+  **skip with a reason, never pass silently** — is the whole of it: with no `brew` on
+  PATH it prints `SKIPPED: brew is not installed, so 'brew style' did not run` and
+  **exits 1**, so a tap that cannot check itself is never indistinguishable from a clean
+  one. `TAP_STYLE_OPTIONAL=1` downgrades that to a warning for a machine that genuinely
+  will never have Homebrew, and only there.
+
+  **The offense count was stale: 1, not the 4 the item predicted** —
+  `Casks/divoom-control.rb:11`, `depends_on macos: :big_sur`. Read before changing it,
+  because deleting a platform constraint is the kind of edit that looks cosmetic and
+  is not. The cop's own source settles it: it fires when the declared version is *at or
+  below* `MacOSVersion.oldest_supported_os`, i.e. Homebrew already refuses anything
+  older, so the line states nothing. Its autocorrect yields `depends_on :macos` — which
+  keeps the requirement and stops restating a floor Homebrew enforces. `arch: :arm64` is
+  untouched and still there.
+
+  Proved in both directions: with `brew` the step runs and reports
+  `5 files inspected, no offenses detected`; with PATH stripped it exits 1 saying it
+  skipped, and with `TAP_STYLE_OPTIONAL=1` it exits 0 having said so.
 - **T1.3 Bumps land through the gate: shipped house-side, not yet safe here.** goh 6.8 (`bfac28b`)
   added `$GOH_DIR/tools/release-kit/tap_bump.sh --tap ztomer/homebrew-tap --formula|--cask NAME
   --tag vX.Y.Z --artifact PATH|URL`: it clones the tap, rewrites, runs this repo's `tools/gate.sh
