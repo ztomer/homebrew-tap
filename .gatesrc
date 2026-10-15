@@ -32,4 +32,4 @@ GOH_DEAD_AFTER_EXEC_MIN_FILES=5       # read 6
 GOH_BARE_HOOK_INDEX_MIN_FILES=5       # read 6
 GOH_BARE_PYTHON_MIN_FILES=5           # read 6
 GOH_MD_LINKS_MIN_LINKS=5              # read 6
-GOH_CI_STEPS='bash tools/tap_consistency.sh:"$GOH_DIR/gates/rust_gate.sh" ."$GOH_DIR/gates/structural.sh" --full'
+GOH_CI_STEPS='bash tools/tap_consistency.sh:bash tools/brew_style.sh:"$GOH_DIR/gates/rust_gate.sh" ."$GOH_DIR/gates/structural.sh" --full'
