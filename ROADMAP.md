@@ -83,20 +83,29 @@ Goal: a wrong formula or cask cannot reach `origin` silently.
   Proved in both directions: with `brew` the step runs and reports
   `5 files inspected, no offenses detected`; with PATH stripped it exits 1 saying it
   skipped, and with `TAP_STYLE_OPTIONAL=1` it exits 0 having said so.
-- **T1.3 Bumps land through the gate: shipped house-side, not yet safe here.** goh 6.8 (`bfac28b`)
-  added `$GOH_DIR/tools/release-kit/tap_bump.sh --tap ztomer/homebrew-tap --formula|--cask NAME
-  --tag vX.Y.Z --artifact PATH|URL`: it clones the tap, rewrites, runs this repo's `tools/gate.sh
-  --full` in the clone and pushes pinned. Its rewrite does not fit this tap's shapes. Proven
-  2026-10-14 by bumping a scratch bare clone to `v9.9.9`: on `Casks/divoom-control.rb` it changed
-  the sha and left `version "0.41.1"` (the old dmg with the new digest); on `Formula/multitop.rb` it
-  set both agent-resource shas to the tarball's and left their `releases/download/v0.54.0` URLs.
-  This tap's gate passed both and they were pushed. (It rewrites `/tags/vX.tar.gz` URLs and every
-  `sha256 "…"` line, never `version "…"`.)
-  Its test fixture is a cask with a `/tags/` URL and no `version` line, so it passes. Reported to
-  goh; fix it there (rewrite `version`, refuse a file with resources unless each resource is
-  named), then T1.1 is the backstop. Proof: bumping each of the five files into a scratch bare clone
-  (`--tap <path>`) leaves a file whose every URL names the new tag and whose shas are distinct, and
-  T1.1 refuses today's output. Depends on T1.1.
+- **T1.3 Bumps land through the gate — DONE, and its premise was stale.**
+  goh 6.15 replaced `tap_bump.sh`'s two `sed` expressions with
+  `tools/release-kit/tap_rewrite.py`, which reads the file as the DSL it is — the
+  top-level `version`, `url` and `sha256`, and each `resource "NAME" do … end` block with
+  its own — and moves them **together**. Verified on a scratch bare clone today (2026-10-15),
+  both recorded defects no longer reproduce:
+
+  * the cask bump moved `version "0.41.2"` → `"0.41.3"` alongside the digest, where the
+    old `sed` left `version "0.41.1"` and brew would have fetched the OLD dmg against the
+    NEW digest. A url interpolating `v#{version}` moves with the version line.
+  * `tap_rewrite` refuses a shape it does not know *by name* rather than guessing.
+
+  So the "shipped house-side, not yet safe here" note is out of date: the house fix landed.
+  The proof this item asked for — "T1.1 refuses today's output" — no longer has anything to
+  refuse, because those outputs are no longer produced. **T1.1 (above) remains the
+  backstop** and was proven against exactly those two shapes when it landed: a resource url
+  left at an old tag, and a resource sha set to the tarball's.
+
+  One measured note from the same experiment: bumping `multitop` to a tag that was never
+  released is refused by `tap_rewrite` itself — it cannot download the new agent resources
+  and fails closed rather than writing a formula that points at 404s. That is the right
+  direction, and it happens before this tap's gate is consulted at all.
+
 
 ## Phase 2: one bump path (M, spans producer repos)
 
