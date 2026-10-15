@@ -156,8 +156,18 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
 
 ## Phase 3: hygiene (S)
 
-- **T3.1** Keep the README table generated from or checked against `Formula/` + `Casks/`: a
-  package added without a row (or a row with no file) goes red.
+- **T3.1 README parity — DONE.** `tools/tap_consistency.sh` checks the README against the
+  packages on disk: a package with no row goes red, and a row with no file goes red.
+
+  The pairing is read from the **install command**, not the display name — the names are
+  prose (`Divoom Control`, `ZTools`) while the command carries the token brew resolves
+  (`brew install --cask ztomer/tap/divoom-control`). Matching on the pretty name would
+  need a hand-maintained synonym table, which is the same drift in a different file.
+
+  Proved both directions: a `Formula/newpkg.rb` with no row is red naming the package; a
+  README row for `ghost` with no file is red naming the row. The real tree is 5 rows and 5
+  files, so it was already consistent — which is exactly why nothing was checking it.
+
 
 ## Sources consolidated
 
