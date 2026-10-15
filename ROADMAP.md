@@ -69,7 +69,12 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
   --format=%s` on this repo shows one commit-message shape for every package after the next
   release of each.
 - **T2.2** Retire `ztools/tools/upgrade_tap.py` once T2.1 lands. Its docstring already says it
-  is not the release path.
+  is not the release path. **CLOSED 2026-10-14**, ahead of T2.1 rather than after it:
+  `ztools` `5fff8d4` deleted the file, its `ARCHITECTURE.md` row, and adopted goh's
+  `status-markers` in the same commit, so `tools/upgrade_tap.py` no longer exists and the one
+  ungated door to this repo is shut. The ordering note stands as a lesson — the dependency was
+  real and the item was still landable first, because the file had no callers and existed only
+  as an alternative path.
 - **T2.3 Review the one kill-by-name survivor.** `Casks/divoom-control.rb` uninstalls with
   `pkill -f 'Divoom.app/Contents/Frameworks/bin/divoom'`. It is seeded `unreviewed` in
   `kill_by_name_allow.json`. Replace it with `uninstall launchctl:` / `quit:` on the helpers' bundle
