@@ -168,6 +168,15 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
   README row for `ghost` with no file is red naming the row. The real tree is 5 rows and 5
   files, so it was already consistent — which is exactly why nothing was checking it.
 
+  **Two bugs this check had before it was proven, both worth keeping:**
+  `printf … | grep -qx` is the early-exit-pipe defect this tap's own gate exists to catch,
+  and this repo's gate caught it here on the first attempt. And the membership helper read
+  its needle with `${!#}`, which does not work on the bash 3.2 that ships on macOS — every
+  test answered "present", so the check was wrong in the QUIET direction and would have
+  passed forever. Needle-first now, and the calibration is re-run after every change to
+  it, because a membership test that cannot say "absent" is the one failure a reviewer
+  cannot see.
+
 
 ## Sources consolidated
 
