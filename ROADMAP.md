@@ -124,11 +124,35 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
   ungated door to this repo is shut. The ordering note stands as a lesson — the dependency was
   real and the item was still landable first, because the file had no callers and existed only
   as an alternative path.
-- **T2.3 Review the one kill-by-name survivor.** `Casks/divoom-control.rb` uninstalls with
-  `pkill -f 'Divoom.app/Contents/Frameworks/bin/divoom'`. It is seeded `unreviewed` in
-  `kill_by_name_allow.json`. Replace it with `uninstall launchctl:` / `quit:` on the helpers' bundle
-  ids, or a pidfile the app writes. Proof: the allowlist entry is deleted and the gate stays green.
-  Risk: it needs divoom-control to give its helpers a stable identity first.
+- **T2.3 Review the one kill-by-name survivor — REVIEWED; the real fix is blocked upstream.**
+  The entry was `unreviewed` since 2026-09-23 and the gate counted it as debt. It is now
+  `legitimate`, with the reason **measured rather than assumed**, and the `pkill` stays:
+
+  * `uninstall quit:` addresses NSApplications by bundle id, and **both helpers are bare
+    binaries**. `divoomd` does carry an embedded `__TEXT,__info_plist` with
+    `CFBundleIdentifier com.divoom.divoomd` (checked with `otool` on the shipped
+    `Divoom.app`) — but that plist exists so macOS can attribute the daemon's **Bluetooth
+    permission**, and it does not register the process with LaunchServices, so `quit:`
+    cannot reach it. `divoom-menubar` has no plist section at all.
+  * the menubar agent is spawned detached (`start_new_session`) and orphans to launchd
+    when the GUI quits, so there is no LaunchAgent to unload either.
+  * there is no pidfile: the daemon's stable handle is the `/tmp/divoom.sock` control
+    socket, which carries no process identity.
+
+  So the item's stated risk is **confirmed, not assumed**: "it needs divoom-control to give
+  its helpers a stable identity first." The pattern itself is as narrow as the need — `-f`
+  matches the full command line and the string is the installed app's own helper path, so it
+  cannot match the main app at `Contents/MacOS/Divoom`, and `|| true` makes a no-match a
+  non-failure.
+
+  **What is left is upstream and is not this repo's to do:** `divoom-control` must give the
+  helpers a stable identity — a real LaunchAgent, or a pidfile the app writes — after which
+  this cask drops the `pkill` and the allowlist entry is deleted. The same evidence is in
+  the cask's own comment, because a reader of the file should not have to come here to find
+  out why a kill-by-name is there.
+
+  Proof: the gate's "1 of them 'unreviewed'" line is gone and the check stays green.
+
 
 ## Phase 3: hygiene (S)
 

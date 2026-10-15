@@ -3,8 +3,8 @@
   {
    "path": "Casks/divoom-control.rb",
    "line": "args:       [\"-c\", \"pkill -f 'Divoom.app/Contents/Frameworks/bin/divoom' || true\"],",
-   "status": "unreviewed",
-   "reason": "seeded 2026-09-23 when the gate landed (pkill matches by name); not yet reviewed"
+   "status": "legitimate",
+   "reason": "REVIEWED 2026-10-15 (was 'unreviewed' since the gate was seeded 2026-09-23). No better mechanism exists today, measured rather than assumed: (1) `uninstall quit:` addresses NSApplications by bundle id, and BOTH helpers are bare binaries, not applications -- `divoomd` carries an embedded `__TEXT,__info_plist` with CFBundleIdentifier com.divoom.divoomd (verified with otool on the shipped Divoom.app), but that plist exists for macOS Bluetooth TCC attribution and does not register the process with LaunchServices, so `quit:` cannot reach it; `divoom-menubar` has no plist section at all. (2) The menubar agent is spawned detached (start_new_session) and orphans to launchd when the GUI quits, so it has no LaunchAgent to unload either. (3) There is no pidfile: the daemon's stable handle is the /tmp/divoom.sock control socket, which carries no process identity. The pattern is as narrow as the need: -f matches the full command line, and the string is the installed app's own helper path, so it cannot match the main app at Contents/MacOS/Divoom; `|| true` makes a no-match a non-failure. The REAL fix needs divoom-control to give the helpers a stable identity -- a LaunchAgent, or a pidfile -- and that is recorded in ROADMAP T2.3."
   }
  ]
 }
