@@ -117,6 +117,12 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
   repos, after T1.3. Track it here because the tap is where divergence shows. Proof: `git log
   --format=%s` on this repo shows one commit-message shape for every package after the next
   release of each.
+  **All five moved, 2026-10-17:** divoom-control `cee1cc4`, monitor `dccdc7a`, ztools (goh's
+  release kit, `--tap`), antiknob `4e6092b`, CadGoose `84a40b4` (its CI step that pushed with a
+  PAT is deleted; `HOMEBREW_TAP_TOKEN` is unused and can be removed from the repo's secrets).
+  antiknob and CadGoose were proved against a scratch bare clone of this tap: the current
+  release is a no-op, a new version rewrites version + sha256 and passes this repo's gate.
+  What stays open is only the stated proof, which needs each product's next real release.
 - **T2.2** Retire `ztools/tools/upgrade_tap.py` once T2.1 lands. Its docstring already says it
   is not the release path. **CLOSED 2026-10-14**, ahead of T2.1 rather than after it:
   `ztools` `5fff8d4` deleted the file, its `ARCHITECTURE.md` row, and adopted goh's
