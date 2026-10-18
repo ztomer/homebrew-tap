@@ -107,6 +107,19 @@ Goal: a wrong formula or cask cannot reach `origin` silently.
   direction, and it happens before this tap's gate is consulted at all.
 
 
+- **T1.4 The steps above never ran, and the macOS floor clause moved here — DONE
+  (CadGoose G0.18).** `tools/gate.sh --full` ran goh's structural layer alone, so T1.1 and
+  T1.2 were declared in `GOH_CI_STEPS` and executed by nothing: the line also named a
+  `rust_gate.sh` this tap has no Rust for, glued to `structural.sh` by a missing colon.
+  `--full` now runs goh `local_ci.sh` over the declared steps, structural first.
+  New step `tools/cask_floor.sh` holds `Casks/cadgoose.rb`'s `depends_on macos:` to the
+  floor CadGoose writes in `cmake/MacOSFloor.cmake`, read at the tag the cask ships (a tag
+  that predates the file, v1.81, reads the default branch and says so), with Homebrew
+  (`MacOSVersion#to_sym`) as the codename authority; a failed fetch is red. The clause used
+  to run in CadGoose against a drifted copy of this cask, which is deleted.
+  *Proof:* `tools/tests/test_cask_floor.sh` (red before the script existed); planting
+  `depends_on macos: :sequoia` turns `tools/gate.sh --full` red.
+
 ## Phase 2: one bump path (M, spans producer repos)
 
 Goal: one implementation of "bump a formula/cask", so a fix reaches every package.

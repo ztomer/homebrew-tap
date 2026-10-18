@@ -14,16 +14,15 @@ case "${1:-}" in
   --doctor)  exec bash "$GOH/gates/doctor.sh" "${2:-$PWD}" ;;
 esac
 
-"$GOH/gates/structural.sh" "$@"
+export GOH_DIR="$GOH"
 
 case "${1:-}" in
   --full)
-    # Add per-language layers for what this repo actually contains:
-    #   "$GOH/gates/rust_gate.sh"  .
-    #   "$GOH/gates/py_gate.sh"    .
-    #   "$GOH/gates/swift_gate.sh" .
-    # Layer 3 (genuinely local checks): create ./tools/repo_gates.sh and
-    # uncomment:
-    #   ./tools/repo_gates.sh
+    # Every layer: the steps .gatesrc declares in GOH_CI_STEPS, structural first.
+    # There is no CI behind this tap; this IS the gate a bump must pass.
+    exec "$GOH/gates/local_ci.sh" "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    ;;
+  *)
+    exec "$GOH/gates/structural.sh" "$@"
     ;;
 esac
