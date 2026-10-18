@@ -119,6 +119,10 @@ Goal: a wrong formula or cask cannot reach `origin` silently.
   to run in CadGoose against a drifted copy of this cask, which is deleted.
   *Proof:* `tools/tests/test_cask_floor.sh` (red before the script existed); planting
   `depends_on macos: :sequoia` turns `tools/gate.sh --full` red.
+  The first push through the now-real gate found T1.2 path-dependent: `brew style` drops
+  Homebrew's config under a hidden path component (the push gate's `~/.cache/goh/push/`)
+  and reported 10 offenses on clean files; `tools/brew_style.sh` now styles a copy under
+  `$TMPDIR`. Proven both ways from a copy under a hidden dir: clean green, planted red.
 
 ## Phase 2: one bump path (M, spans producer repos)
 

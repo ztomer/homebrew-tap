@@ -29,4 +29,19 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-exec brew style "$HERE"/Formula/*.rb "$HERE"/Casks/*.rb
+# Style a COPY under a temp dir, never the files in place. `brew style` (rubocop)
+# drops Homebrew's own config for a path with a hidden component, and the push gate
+# checks the commit out under ~/.cache/goh/push/: there it reported 10 offenses
+# (frozen-string comments, a duplicate `install` against the installed tap) on files
+# it calls clean from ~/Projects. Measured 2026-10-18 the first time this step ran
+# in the push gate; a step that passes or fails by checkout path checks the path.
+work="$(mktemp -d "${TMPDIR:-/tmp}/tap-style.XXXXXX")"
+trap 'rm -rf "$work"' EXIT
+case "$work" in
+    */.*) printf 'brew_style: temp dir %s has a hidden component; set TMPDIR elsewhere\n' "$work" >&2
+          exit 1 ;;
+esac
+mkdir -p "$work/Formula" "$work/Casks"
+cp "$HERE"/Formula/*.rb "$work/Formula/"
+cp "$HERE"/Casks/*.rb "$work/Casks/"
+brew style "$work"/Formula/*.rb "$work"/Casks/*.rb </dev/null
