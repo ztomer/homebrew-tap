@@ -21,7 +21,10 @@ GOH_NO_KILL_BY_NAME=1
 # Every scanner's floor (goh v0.27.0, docs/config.md): a full-scope scan that
 # reads less than this has lost its subject and is red, not clean. Nine tenths
 # of what each read on 2026-10-14 (the house rule); lower one with the tree in
-# the same commit, never to absorb a scan that went blind.
+# the same commit, never to absorb a scan that went blind. The last two were
+# measured 2026-10-19: the step named them as the scanners that read
+# something and declared no floor, which is the Phase 0 item (P0.1) unfinished
+# -- a scan that stopped reading would have passed.
 GOH_EMOJI_MIN_FILES=19                # read 21
 GOH_CONFLICT_MARKERS_MIN_FILES=19     # read 21
 GOH_FILE_LENGTH_MIN_FILES=5           # read 6
@@ -32,6 +35,8 @@ GOH_DEAD_AFTER_EXEC_MIN_FILES=5       # read 6
 GOH_BARE_HOOK_INDEX_MIN_FILES=5       # read 6
 GOH_BARE_PYTHON_MIN_FILES=5           # read 6
 GOH_MD_LINKS_MIN_LINKS=5              # read 6
+GOH_TAP_WRITES_MIN_FILES=9            # read 11 (script/workflow files)
+GOH_UNREAPED_SPAWN_MIN_FILES=1        # read 2 (test files)
 # Every step the pre-push gate runs (tools/gate.sh --full -> goh local_ci.sh). Until
 # CadGoose G0.18 nothing ran these: gate.sh --full ran the structural layer alone, and
 # this line named a rust_gate the tap has no Rust for, glued to structural by a missing colon.

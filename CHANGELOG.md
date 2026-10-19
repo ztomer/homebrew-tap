@@ -33,6 +33,11 @@ session.
 - `.gatesrc`: `bash tools/tests/test_tap_consistency.sh` is a declared step,
   so the tap's own gate runs it -- here, and in the clone every producer's
   `tap_bump.sh` makes before it pushes a bump.
+- `.gatesrc`: the two scanners that read something and declared NO floor now
+  declare one -- `GOH_TAP_WRITES_MIN_FILES=9` (read 11) and
+  `GOH_UNREAPED_SPAWN_MIN_FILES=1` (read 2). Phase 0's item ("every scanner
+  declares its floor") was unfinished for these two, and the gate said so on
+  every run: "a scan that stops reading would pass".
 - ROADMAP: T2.1's stated proof, measured on this repo's own history, and
   T2.3's reason re-measured against divoom-control v0.41.3.
 
@@ -50,7 +55,8 @@ the cask-floor test, the cask floor. The new test was proven to BITE: five
 mutations of the gate it tests (the duplicate-sha check removed, the
 url-version check removed, the membership helper made always-present, the
 README parity removed, the trailing-newline check removed) each turned it red,
-and the unmutated gate stayed green.
+and the unmutated gate stayed green. The new floors bite too: a floor above
+the count read is red, naming the key, the floor and the count.
 
 **Followups**: two of the five packages have not released since the bump path
 moved, so their halves of T2.1's proof are still outstanding: antiknob (its
