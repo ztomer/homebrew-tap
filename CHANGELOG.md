@@ -4,8 +4,10 @@ What shipped in this tap. The ROADMAP holds only what is OPEN; what is DONE
 lives here and in the git history, because a per-feature plan graveyard rots
 and misleads a later session (house rule).
 
-The tap's own history before 2026-10-14 is in the git log. This file starts
-where the tap began gating itself.
+The tap's own history before 2026-10-14 is in the git log -- the house gates
+were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
+`3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
+tap began gating its own bumps.
 
 ## The consistency gate gets the test it always claimed to have _(2026-10-19)_
 
