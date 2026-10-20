@@ -9,6 +9,94 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The cask stops the app's helpers BY THEIR IDENTITY, and the kill-by-name gate is empty again _(2026-10-20)_
+
+T2.3 was open for exactly one reason: the cask's uninstall stopped the app's
+two detached helpers (the daemon and the menu-bar agent) with a NAME PATTERN,
+because the helpers had no stable identity to be addressed by. A pattern is
+not an address -- it reaches every process whose command line looks like the
+helper's, including ones the app does not own -- so the pattern sat in
+`kill_by_name_allow.json` with a `legitimate` reason, re-measured twice.
+
+divoom-control gave the helpers a stable identity in commit `2010a31` ("the
+helpers have a stable identity, and the quit path uses it"): the app writes
+`~/.config/divoom-control/run/divoomd.pid` and `.../divoom-menubar.pid`,
+each naming ONE process -- its pid AND the moment it started. The start time
+is what makes a stale identity safe: the OS reuses pids, so an identity left
+behind by a crashed run would otherwise point at whatever process took that
+pid next. A stale identity resolves to NOTHING, and the reader leaves the
+innocent process alone.
+
+**What shipped**
+
+- `Casks/divoom-control.rb`: the uninstall's name-pattern kill is GONE. It
+  now stops the helpers BY THEIR IDENTITY: it reads each `run/*.pid`, checks
+  that the pid is still the SAME process (`ps -p <pid> -o lstart=` against the
+  recorded start time, under `LC_ALL=C` so the string is comparable), and
+  only then stops it. A pid the OS has REUSED is left alive; an identity that
+  names nothing is cleared. This is the shell half of the app's own rule
+  (upstream's `divoom_client/helper_identity.py` and `scripts/stop_helpers.sh`),
+  for the caller that cannot run Python: the uninstall.
+- `Casks/divoom-control.rb`: the home is resolved DELIBERATELY -- the
+  identities live in the USER's config directory, and a script can run with a
+  `HOME` that is not the user's home -- so the directory is `$DIVOOM_IDENTITY_DIR`
+  if it is set, else `$HOME`, else the passwd entry of the user the script
+  runs as. The directory that was used is PRINTED, so a run that stopped
+  nothing says where it looked instead of passing in silence.
+- `Casks/divoom-control.rb`: the comment that explained the name pattern (and
+  measured, at length, why there was no better mechanism) is rewritten. The
+  reason it gave is GONE, and a reader of the FILE is not misled: the file now
+  says how the helpers are addressed, and which upstream commit gave them
+  their identity.
+- `kill_by_name_allow.json`: DELETED. A fixed kill takes its entry with it,
+  and a missing allowlist means no exemptions. The kill-by-name check now
+  reports "no kill by name" with NOTHING allowlisted -- the "1 allowlisted in
+  kill_by_name_allow.json" note is gone. (The "N of them 'unreviewed'" line
+  was never printed: the entry was reviewed, `legitimate`, and its debt was
+  0 -- what the deletion removed was the allowlist note itself.)
+- `tools/tests/test_cask_uninstall_identity.sh` (new): the PROOF, run by the
+  tap's own gate. It extracts the stop from the cask file (so the test cannot
+  drift from the shipped code) and shows that the named process IS stopped, a
+  RECYCLED pid is left ALIVE, the identities are found in the user's home and
+  in the passwd home when `HOME` is not the user's, an identity that names
+  nothing is cleared without killing anything, and the cask's code no longer
+  contains a kill by name. The extracted script is also checked with
+  `bash -n` and `shellcheck --severity=error -s sh`, the lint the gate gives
+  a tracked shell file.
+- `.gatesrc`: the new test is a declared step (the gate is SEVEN steps now);
+  the allowlist comment says there are NO exemptions today and why the file
+  is gone; and the shell-lint and unreaped-spawn floors were raised WITH the
+  tree (they read 7 shell files and 3 test files now -- a floor that cannot
+  fire is not a floor).
+- `ROADMAP.md`: T2.3 closed, with the residual stated.
+
+**What deliberately didn't ship**
+
+- The cask's VERSION: it still ships v0.41.3, whose app does NOT register
+  its helpers. Upstream's identity landed in `2010a31`, which is in the
+  release AFTER v0.41.3 -- `git tag --contains 2010a31` is empty, and
+  upstream's CHANGELOG still carries the change under "Unreleased". So until
+  the producer's release script bumps this cask to the release that carries
+  it, the identity-based stop has NOTHING to address for the installed app:
+  the helpers are stopped only by the `quit:` stanza (the app's own graceful
+  path), and the orphan cases the name pattern used to cover -- the GUI
+  killed or crashed, or the user asking for the tray to survive it
+  (`keep_daemon_alive` / `quit_menubar_on_exit`) -- are not covered by the
+  cask. That window closes with the producer's next release; the tap must
+  not re-grow a name pattern to cover it, and this is stated in the ROADMAP
+  rather than left for a reader to find.
+
+**Tests**: the tap's own gate, 7 steps green -- structural, the tap consistency
+check, the consistency test, `brew style` (5 files, no offenses), the
+cask-floor test, the cask's identity-based uninstall test, the cask floor.
+The kill-by-name check reports "17 tracked code files, no kill by name", with
+nothing allowlisted and no "unreviewed" debt.
+
+**Followups**: ROADMAP T2.1 stays open for antiknob alone -- its next release
+is the proof, and nothing in this repo can hurry it. ROADMAP T2.3 is closed
+for this repo; what remains is the producer's next divoom-control release
+landing in this tap, which is upstream's and the release script's.
+
 ## The bump path, proved by four releases; and the cask's comment, corrected _(2026-10-20)_
 
 T2.1's proof was "the next real release of each package lands one

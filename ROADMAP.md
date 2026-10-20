@@ -5,7 +5,7 @@ lives in `CHANGELOG.md` and in git history; this file holds what is OPEN.
 
 ## Context (measured 2026-10-20)
 
-- 5 packages: `Formula/multitop.rb` (0.57.0), `Formula/ztools.rb` (3.9.0),
+- 5 packages: `Formula/multitop.rb` (0.58.0), `Formula/ztools.rb` (3.9.0),
   `Casks/antiknob.rb` (0.15.1), `Casks/cadgoose.rb` (1.83),
   `Casks/divoom-control.rb` (0.41.3 — its v0.41.3 release landed in this repo
   on 2026-10-19 as `be0259d`).
@@ -18,9 +18,10 @@ lives in `CHANGELOG.md` and in git history; this file holds what is OPEN.
   TOGETHER, runs THIS tap's `tools/gate.sh --full` in the clone, and pushes
   the commit PINNED. A red gate pushes nothing.
 - Gate: `tools/gate.sh --full` runs goh's `local_ci.sh` over the steps
-  `.gatesrc` declares. Six steps, green on 2026-10-19: structural, the tap
+  `.gatesrc` declares. SEVEN steps, green on 2026-10-20: structural, the tap
   consistency check, the consistency test, `brew style`, the cask-floor test,
-  the cask floor. `brew style` reports 5 files inspected, no offenses.
+  the cask's identity-based uninstall test, the cask floor. `brew style`
+  reports 5 files inspected, no offenses.
 
 ## Rulings
 
@@ -84,48 +85,47 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
   `release-kit/release.sh`, whose tap step calls `tap_bump.sh`
   (`gates_of_heck/tools/release-kit/release.sh:461`).
 
-- **T2.3 The kill-by-name survivor: the reason RE-MEASURED (2026-10-20
-  against divoom-control v0.41.3's own tree), and it is still true. OPEN, and
-  it is upstream's.** The one entry in `kill_by_name_allow.json` is
-  `legitimate` and the `pkill` stays, because the reason is only as good as the
-  day it was measured -- and today the reason still holds:
+- **T2.3 The kill-by-name survivor: CLOSED for the cask (2026-10-20). The
+  reason was MEASURED, the upstream fix has LANDED, and this repo no longer
+  kills a process by NAME.** The one entry in `kill_by_name_allow.json` was
+  `legitimate` and the cask's `pkill` stayed, because the helpers had no
+  stable identity to be addressed by -- they are BARE BINARIES in their own
+  sessions, so `quit:` cannot reach them, there is no LaunchAgent to unload,
+  and a NAME PATTERN was the only thing left.
 
-  * the helpers are still BARE BINARIES, not NSApplications. `divoomd` carries
-    an embedded `__TEXT,__info_plist` with `CFBundleIdentifier
-    com.divoom.divoomd` (`divoomd/build.rs`, `divoomd/daemon_info.plist`),
-    which exists so macOS can attribute the daemon's Bluetooth permission and
-    does not register the process with LaunchServices, so `quit:` cannot address
-    it; `divoom-menubar` has no plist section at all (no `build.rs`).
-  * the menu-bar agent is still spawned DETACHED --
-    `subprocess.Popen(..., start_new_session=True)` at
-    `divoom_gui/gui_main.py:467` -- and the daemon is spawned detached too
-    (`divoom_client/daemon_client.py:236`). The agent does not self-terminate
-    on the daemon's shutdown broadcast.
-  * there is still no pidfile and no LaunchAgent anywhere in divoom-control: a
-    search of the whole v0.41.3 tree for `launchagent` / `launchctl` / a
-    `.pid` path returns nothing, and the daemon's stable handle is the
-    `/tmp/divoom.sock` control socket, which carries no process identity.
+  divoom-control gave them one: commit `2010a31` ("the helpers have a stable
+  identity, and the quit path uses it") writes
+  `~/.config/divoom-control/run/divoomd.pid` and `.../divoom-menubar.pid`,
+  each naming ONE process -- its pid AND the moment it started. The start
+  time is what makes a stale identity safe: the OS reuses pids, so an
+  identity left behind by a crashed run would otherwise point at whatever
+  process took that pid next. A stale identity resolves to NOTHING, and the
+  reader leaves the innocent process alone.
 
-  **PRECISION, fixed 2026-10-20 -- the cask's comment said it wrong.** The
-  menu-bar agent is NOT unconditionally orphaned. The app's own shared-lifecycle
-  quit path terminates it (`divoom_gui/gui_main.py:_terminate_menubar_agent`),
-  and asks the daemon to shut down over its control socket. That path is
-  skipped when the user turns `keep_daemon_alive` on (independent lifecycles --
-  the tray is meant to survive the GUI) or clears `quit_menubar_on_exit`
-  (`divoom_lib/lifecycle_config.py:should_quit_menubar_on_exit`), and it never
-  runs at all if the GUI is killed or crashes. So the orphan case is REAL, but
-  it is not "every GUI quit leaves a stale tray icon", and the cask's comment
-  now says so, as does the allowlist entry's reason.
+  So the cask's uninstall stops the helpers BY THEIR IDENTITY: it reads each
+  identity, checks that the pid is still the SAME process (`ps -p <pid> -o
+  lstart=` against the recorded start time), and only then stops it. The
+  `pkill` is GONE, `kill_by_name_allow.json` is DELETED (a missing allowlist
+  means no exemptions), and the gate reports "no kill by name" with NOTHING
+  allowlisted. The property is PROVED, not asserted:
+  `tools/tests/test_cask_uninstall_identity.sh` -- run by the tap's own gate
+  -- shows the named process IS stopped, a RECYCLED pid is left ALIVE, and
+  the identities are found in the user's home (and in the passwd home when
+  `HOME` is not the user's).
 
-  So the item's stated risk is CONFIRMED, not assumed, and the cask's `pkill`
-  and this allowlist entry both stay.
-
-  **What is left is upstream and is not this repo's to do:** divoom-control
-  must give the helpers a stable identity -- a real LaunchAgent, or a pidfile
-  the app writes -- after which this cask drops the `pkill` and the
-  allowlist entry is deleted. Until then the two stay, and the reason they
-  stay is re-measured here, in the ROADMAP, in the allowlist entry itself and
-  in the cask's own comment.
+  **What is LEFT, and it is not this repo's to do: the cask still ships
+  v0.41.3, whose app does NOT register its helpers.** The identity landed
+  upstream in `2010a31`, which is in the release AFTER v0.41.3 (upstream's
+  CHANGELOG still carries it under "Unreleased"; `git tag --contains
+  2010a31` is empty). Until the producer's release script bumps this cask to
+  the release that carries it, the identity-based stop has NOTHING to
+  address for the installed app: the helpers are stopped only by the `quit:`
+  stanza (the app's own graceful path), and the orphan cases the name
+  pattern used to cover -- the GUI killed or crashed, or the user asking for
+  the tray to survive it (`keep_daemon_alive` / `quit_menubar_on_exit`) --
+  are not covered by the cask. The producer's next release closes that
+  window; nothing in this repo can hurry it, and the tap must not re-grow a
+  name pattern to cover it.
 
 ## Sources consolidated
 
