@@ -9,6 +9,75 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The bump path, proved by four releases; and the cask's comment, corrected _(2026-10-20)_
+
+T2.1's proof was "the next real release of each package lands one
+commit-message shape". Four of the five have now released since the move, and
+the ROADMAP's table says so with the commits that carry it. The fifth,
+antiknob, has NOT released since 2026-10-17, so its half is still outstanding
+and is not implied anywhere.
+
+The cask's comment about the menu-bar agent was wrong in the way a comment can
+be wrong: it said the agent "orphans to launchd when the GUI quits", which
+reads as "every GUI quit leaves a stale tray icon". The app's own
+shared-lifecycle quit path terminates it.
+
+**What shipped**
+
+- `ROADMAP.md` T2.1, re-measured 2026-10-20 with `git log --format=%s`: the
+  table now carries divoom-control's `be0259d` "divoom-control v0.41.3" -- its
+  proof CLOSED, because the message changed shape AT the move (its last
+  pre-move bump was `5645bdd` "divoom-control 0.41.2", no `v`). antiknob's row
+  says plainly that it has NOT released since the move: latest upstream tag
+  still v0.15.1 (2026-10-09), last tap commit still `4dd9b12` "antiknob
+  0.15.1" (2026-10-08), the PRE-move shape.
+- `ROADMAP.md` T2.1's multitop row carries a SECOND release: `3fc5861`
+  "multitop v0.57.0" landed in this repo while this round was in flight, and
+  it carries the same `<name> v<version>` shape as `4385954`
+  "multitop v0.56.0". A producer bumping the tap mid-round is the path
+  working, not an accident.
+- `ROADMAP.md` T2.1 keeps ztools' caveat, re-measured and still true: ztools'
+  shape is IDENTICAL before and after the move (goh's old `release.sh` wrote
+  `"${TAP_NAME} ${TAG}"` -- `gates_of_heck` `bfac28b^`), so for ztools the
+  PATH is the evidence, not the shape. The path is proven separately:
+  `ztools/tools/release.sh` execs goh's `release-kit/release.sh`, whose tap
+  step calls `tap_bump.sh`.
+- `Casks/divoom-control.rb`: the `pkill` comment now says what is true. Both
+  helpers are spawned DETACHED, so each sits in its own session, not the GUI's
+  process group, and does not die with the GUI -- but the app's own
+  shared-lifecycle quit path DOES terminate the menu-bar agent
+  (`divoom_gui/gui_main.py:_terminate_menubar_agent`) and asks the daemon to
+  shut down over its control socket. That path is skipped when the user sets
+  `keep_daemon_alive` or clears `quit_menubar_on_exit`, and it never runs at
+  all if the GUI is killed or crashes. The `pkill` covers exactly those cases.
+- `kill_by_name_allow.json`: the entry's reason carries the same precision and
+  the 2026-10-20 re-measurement (against divoom-control v0.41.3's own tree,
+  not HEAD).
+- `.gatesrc`: its comment still said "1 entries, 1 unreviewed" -- true on
+  2026-09-23, stale since the entry was reviewed on 2026-10-15. It now says
+  1 entry, 0 unreviewed.
+
+**What deliberately didn't ship**
+
+- The divoom-control cask's `pkill`, and its `kill_by_name_allow.json` entry.
+  RE-MEASURED 2026-10-20 against divoom-control v0.41.3's own tree: still no
+  LaunchAgent and still no pidfile (a search of the whole tag for `launchagent`
+  / `launchctl` / a `.pid` path returns nothing), `divoomd`'s embedded plist is
+  still only a Bluetooth-TCC attribution plist, and `divoom-menubar` still has
+  no plist section. The real fix is upstream; the measurement is in ROADMAP
+  T2.3.
+
+**Tests**: the tap's own gate, 6 steps green -- structural, the tap consistency
+check, the consistency test, `brew style` (5 files, no offenses), the cask-floor
+test, the cask floor. The kill-by-name check still reports "no kill by name,
+1 allowlisted".
+
+**Followups**: ROADMAP T2.1 stays open for antiknob alone -- its next release
+is the proof, and nothing in this repo can hurry it. ROADMAP T2.3 stays open
+and is upstream's: divoom-control must give its helpers a stable identity (a
+real LaunchAgent, or a pidfile the app writes) before the `pkill` and the
+allowlist entry can go.
+
 ## The consistency gate gets the test it always claimed to have _(2026-10-19)_
 
 The tap's gate had a step with no test. `tools/tap_consistency.sh`'s header
@@ -64,7 +133,8 @@ the count read is red, naming the key, the floor and the count.
 moved, so their halves of T2.1's proof are still outstanding: antiknob (its
 latest upstream release is still v0.15.1, 2026-10-09) and divoom-control
 (whose v0.41.3 release was in flight and had not landed in this repo when the
-proof was measured). ROADMAP T2.1.
+proof was measured). ROADMAP T2.1. (SUPERSEDED 2026-10-20: divoom-control's
+v0.41.3 did land in this repo, so only antiknob's half is outstanding.)
 
 ## The tap's gate runs the steps it declares _(2026-10-18)_
 
