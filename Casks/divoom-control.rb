@@ -16,46 +16,113 @@ cask "divoom-control" do
     run "/usr/bin/xattr", args: ["-rd", "com.apple.quarantine", "{{appdir}}/Divoom.app"]
   end
 
-  # A clean upgrade/uninstall must stop everything the app spawns. Homebrew runs
-  # these in a fixed order (quit before script), so:
-  #   1. quit the GUI by bundle id — this triggers the app's own graceful daemon
-  #      shutdown (divoomd exits, releasing /tmp/divoom.sock).
-  #   2. pkill the helper binaries — both helpers are spawned DETACHED
-  #      (start_new_session), so each sits in its OWN session, not the GUI's process
-  #      group: it does not die with the GUI, and when the GUI exits it is reparented
-  #      to launchd. It must be killed explicitly; this also reaps a stubborn
-  #      divoomd. The pattern matches only
-  #      Contents/Frameworks/bin/divoom{d,-menubar}, never the main
-  #      Contents/MacOS/Divoom app. `|| true` so a no-match (nothing running) is
-  #      not treated as a failure.
+  # The app spawns two helpers — the daemon and the menu-bar agent — as
+  # DETACHED processes: each sits in its OWN session, so it does not die with
+  # the GUI and is reparented to launchd. A clean uninstall has to stop them.
   #
-  # THE APP ALREADY STOPS MOST OF THIS ITSELF (re-measured 2026-10-20 against
-  # divoom-control v0.41.3). The menu-bar agent is NOT unconditionally orphaned:
-  # the app's shared-lifecycle quit path terminates it
-  # (divoom_gui/gui_main.py:_terminate_menubar_agent) and asks the daemon to shut
-  # down over its control socket. That path is SKIPPED when the user sets
-  # `keep_daemon_alive` (independent lifecycles — the tray is meant to survive the
-  # GUI) or clears `quit_menubar_on_exit`
-  # (divoom_lib/lifecycle_config.py:should_quit_menubar_on_exit), and it NEVER runs
-  # if the GUI is killed or crashes. Those are the cases the pkill covers, and an
-  # uninstall must stop a kept-alive tray the app deliberately kept running.
+  # It stops them BY THEIR IDENTITY. The app registers every helper it spawns
+  # in its run directory (~/.config/divoom-control/run/divoomd.pid and
+  # .../divoom-menubar.pid), naming ONE process: its pid AND the moment it
+  # started. That registration is upstream divoom-control commit 2010a31 (the
+  # release after v0.41.3). The start time is what makes an identity safe: the
+  # OS reuses pids, so an identity left behind by a crashed run would
+  # otherwise point at whatever process took that pid next. A live process
+  # whose start time differs from the recorded one is NOT this app's helper,
+  # and is left alone. A NAME PATTERN cannot say that: it reaches every
+  # process whose command line looks like the helper's, including ones this
+  # app does not own.
   #
-  # WHY pkill AND NOT `quit:`, MEASURED (2026-10-15, re-measured 2026-10-20).
-  # `quit:` reaches NSApplications by bundle id, and both helpers are BARE
-  # BINARIES. `divoomd` does carry an embedded
-  # `__TEXT,__info_plist` with CFBundleIdentifier `com.divoom.divoomd` (checked with
-  # `otool` on the shipped Divoom.app) -- but that plist exists so macOS can attribute
-  # the daemon's Bluetooth permission, and it does NOT register the process with
-  # LaunchServices, so `quit:` cannot address it. `divoom-menubar` has no plist at all.
-  # There is no LaunchAgent to unload and no pidfile to address either: the
-  # daemon's stable handle is the /tmp/divoom.sock control socket, which carries
-  # no process identity. Reviewed as `legitimate` in kill_by_name_allow.json
-  # with this evidence; the real fix needs divoom-control to give these helpers a
-  # stable identity (a LaunchAgent or a pidfile) and is ROADMAP T2.3.
+  # Homebrew runs `quit:` before `script:`. The quit asks the app to stop its
+  # helpers gracefully and clears their identities; the script below is the
+  # backstop for the cases the app could not cover — the GUI was killed or
+  # crashed, or the user asked for the tray to survive it
+  # (keep_daemon_alive / quit_menubar_on_exit).
+  #
+  # The script is the shell half of the app's own rule (upstream's
+  # divoom_client/helper_identity.py and scripts/stop_helpers.sh), for the
+  # caller that cannot run Python: the uninstall.
+  stop_helpers_by_identity = <<~'DIVOOM_STOP_HELPERS'
+    # Stop the app's helpers BY THEIR IDENTITY.
+    #
+    # Each helper the app spawns is registered in its run directory, naming
+    # ONE process: its pid AND the moment it started. The start time is what
+    # makes a stale identity safe — the OS reuses pids, so an identity left
+    # behind by a crashed run would otherwise point at whatever process took
+    # that pid next. A live process whose start time differs from the
+    # recorded one is NOT this app's helper, and is left alone.
+    #
+    # The identities live in the USER's config directory, and a script can
+    # run with a HOME that is not the user's home. So the home is resolved
+    # deliberately: $DIVOOM_IDENTITY_DIR if it is set, else $HOME, else the
+    # passwd entry of the user this script runs as. The directory that was
+    # used is printed, so a run that stopped nothing says where it looked
+    # instead of passing in silence.
+
+    identity_dir="${DIVOOM_IDENTITY_DIR:-}"
+    if [ -z "$identity_dir" ]; then
+        home="${HOME:-}"
+        if [ -z "$home" ]; then
+            # HOME is not set. The identities live in the home of the user
+            # this script runs as, and the passwd entry knows it: `id -P`
+            # ends with <home>:<shell>. `id` is resolved through PATH so a
+            # test can stand in for the passwd entry.
+            home="$(id -P "$(id -un)" 2>/dev/null | awk -F: 'NF > 1 { print $(NF-1) }')"
+        fi
+        if [ -n "$home" ]; then
+            identity_dir="$home/.config/divoom-control/run"
+        fi
+    fi
+
+    if [ -z "$identity_dir" ]; then
+        echo "divoom-control: no home (HOME is unset and the passwd entry names none), so the app's helper identities could not be found; no helper was stopped."
+        exit 0
+    fi
+    echo "divoom-control: helper identities: $identity_dir"
+    if [ ! -d "$identity_dir" ]; then
+        echo "divoom-control: no helper identities under $identity_dir; no helper was stopped by identity."
+        exit 0
+    fi
+
+    stopped=0
+    for identity in "$identity_dir"/*.pid; do
+        [ -f "$identity" ] || continue
+        name="${identity##*/}"
+        pid=$(/usr/bin/sed -n 's/.*"pid"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$identity")
+        started=$(/usr/bin/sed -n 's/.*"started"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$identity")
+        if [ -z "$pid" ] || [ -z "$started" ]; then
+            echo "divoom-control: $name names no process; removing the identity."
+            rm -f "$identity"
+            continue
+        fi
+        # `ps` pads its column, so both ends are trimmed: the app trimmed the
+        # recorded value the same way when it wrote it.
+        live=$(LC_ALL=C /bin/ps -p "$pid" -o lstart= 2>/dev/null | /usr/bin/sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        if [ -z "$live" ]; then
+            echo "divoom-control: $name: pid $pid is gone; removing the identity."
+            rm -f "$identity"
+            continue
+        fi
+        if [ "$live" != "$started" ]; then
+            echo "divoom-control: $name: pid $pid is a DIFFERENT process (the pid was reused); leaving it alone."
+            rm -f "$identity"
+            continue
+        fi
+        if /bin/kill "$pid" 2>/dev/null; then
+            echo "divoom-control: $name: stopped pid $pid."
+            stopped=$((stopped + 1))
+        else
+            echo "divoom-control: $name: could not stop pid $pid."
+        fi
+        rm -f "$identity"
+    done
+    echo "divoom-control: stopped $stopped helper(s) by identity."
+    exit 0
+  DIVOOM_STOP_HELPERS
+
   uninstall quit:   "com.divoom.control",
             script: {
               executable: "/bin/sh",
-              args:       ["-c", "pkill -f 'Divoom.app/Contents/Frameworks/bin/divoom' || true"],
+              args:       ["-c", stop_helpers_by_identity],
               sudo:       false,
             }
 

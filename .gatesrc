@@ -13,10 +13,11 @@ GOH_MAX_LINES=500                 # file-length cap; unset disables the check
 # in the environment for the scripts repo's bin/disk_hygiene.sh, not here.
 
 # No process kill by name (gates_of_heck check_no_kill_by_name.py, 2026-09-23).
-# A name matches processes this repo does not own. Today's survivors are in
-# kill_by_name_allow.json (1 entry, reviewed 2026-10-15 and re-measured
-# 2026-10-20 -- 0 unreviewed); a new kill by
-# name fails, and a fixed one must take its entry with it.
+# A name matches processes this repo does not own. There are NO exemptions
+# today: the cask's name-pattern kill went when divoom-control gave the
+# helpers a stable identity (upstream 2010a31), and a fixed kill takes its
+# allowlist entry with it -- so kill_by_name_allow.json is GONE, and a missing
+# allowlist means no exemptions.
 GOH_NO_KILL_BY_NAME=1
 
 # Every scanner's floor (goh v0.27.0, docs/config.md): a full-scope scan that
@@ -25,20 +26,22 @@ GOH_NO_KILL_BY_NAME=1
 # the same commit, never to absorb a scan that went blind. The last two were
 # measured 2026-10-19: the step named them as the scanners that read
 # something and declared no floor, which is the Phase 0 item (P0.1) unfinished
-# -- a scan that stopped reading would have passed.
+# -- a scan that stopped reading would have passed. The shell lint's floor was
+# raised with the tree on 2026-10-20: it read 7 shell files (the new test is
+# one), and a floor of 1 could not fire on a scan that read almost nothing.
 GOH_EMOJI_MIN_FILES=19                # read 21
 GOH_CONFLICT_MARKERS_MIN_FILES=19     # read 21
 GOH_FILE_LENGTH_MIN_FILES=5           # read 6
 GOH_SECRETS_MIN_FILES=19              # read 21
-GOH_SHELL_LINT_MIN_FILES=1            # read 1
+GOH_SHELL_LINT_MIN_FILES=6            # read 7
 GOH_EARLY_EXIT_PIPE_MIN_FILES=5       # read 6
 GOH_DEAD_AFTER_EXEC_MIN_FILES=5       # read 6
 GOH_BARE_HOOK_INDEX_MIN_FILES=5       # read 6
 GOH_BARE_PYTHON_MIN_FILES=5           # read 6
 GOH_MD_LINKS_MIN_LINKS=5              # read 6
 GOH_TAP_WRITES_MIN_FILES=9            # read 11 (script/workflow files)
-GOH_UNREAPED_SPAWN_MIN_FILES=1        # read 2 (test files)
+GOH_UNREAPED_SPAWN_MIN_FILES=2        # read 3 (test files)
 # Every step the pre-push gate runs (tools/gate.sh --full -> goh local_ci.sh). Until
 # CadGoose G0.18 nothing ran these: gate.sh --full ran the structural layer alone, and
 # this line named a rust_gate the tap has no Rust for, glued to structural by a missing colon.
-GOH_CI_STEPS='"$GOH_DIR/gates/structural.sh" --full:bash tools/tap_consistency.sh:bash tools/tests/test_tap_consistency.sh:bash tools/brew_style.sh:bash tools/tests/test_cask_floor.sh:bash tools/cask_floor.sh'
+GOH_CI_STEPS='"$GOH_DIR/gates/structural.sh" --full:bash tools/tap_consistency.sh:bash tools/tests/test_tap_consistency.sh:bash tools/brew_style.sh:bash tools/tests/test_cask_floor.sh:bash tools/tests/test_cask_uninstall_identity.sh:bash tools/cask_floor.sh'
