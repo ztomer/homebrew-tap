@@ -1,8 +1,8 @@
 class Multitop < Formula
   desc "Multi-server TUI dashboard — SSH into servers, watch system stats side by side"
   homepage "https://github.com/ztomer/multitop"
-  url "https://github.com/ztomer/multitop/archive/refs/tags/v0.58.1.tar.gz"
-  sha256 "05a8bd7ae4da8eae7001ecd0bb039bb1300be07ca2c6f83cee03c4c3040a556f"
+  url "https://github.com/ztomer/multitop/archive/refs/tags/v0.59.0.tar.gz"
+  sha256 "ccd564f991d1ecce4a8a4d088faae9d5d4d9358b3b68e1965cc4a08e099b4347"
   license "MIT"
   head "https://github.com/ztomer/multitop.git", branch: "main"
 
@@ -14,13 +14,13 @@ class Multitop < Formula
   # build.rs hard-gates that an embedded agent matches the workspace version,
   # which these do. Bump these URLs + shas with every version bump.
   resource "multitop-agent-x86_64" do
-    url "https://github.com/ztomer/multitop/releases/download/v0.58.1/multitop-agent-x86_64-unknown-linux-musl"
-    sha256 "68c332cd184d8cbd27b06239f05ab286c3513cf810ea76637a1b0c1270d2d342"
+    url "https://github.com/ztomer/multitop/releases/download/v0.59.0/multitop-agent-x86_64-unknown-linux-musl"
+    sha256 "193aea0488bc3cfe331441c34895cbfd1b217376a52a668ced1d77ccf0b213ad"
   end
 
   resource "multitop-agent-aarch64" do
-    url "https://github.com/ztomer/multitop/releases/download/v0.58.1/multitop-agent-aarch64-unknown-linux-musl"
-    sha256 "edcb5a98df645747d66ec26a9ca8032c51548110dcb4c8cae7d6c54b5c6431c4"
+    url "https://github.com/ztomer/multitop/releases/download/v0.59.0/multitop-agent-aarch64-unknown-linux-musl"
+    sha256 "4c27c7530212b20b856e89ff8fd8124c0dc9d89afc52045353868eec0a35099a"
   end
 
   def install
