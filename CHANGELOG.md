@@ -9,6 +9,43 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The cask ships v0.41.6, the release that STORES the art in the device _(2026-10-21)_
+
+The owner's ruling was "art should be stored", and the cask still pointed at
+v0.41.5 -- the release before the store existed. So the cask shipped a build
+that could only SHOW the gallery: the art was streamed to the panel and the
+panel forgot it.
+
+**What shipped**
+
+- `Casks/divoom-control.rb`: v0.41.6, and the digest of the asset the
+  release actually publishes. Measured on the RELEASED ASSET, not on a local
+  build: `gh release download v0.41.6` fetched the 39,883,264-byte DMG and
+  `shasum -a 256` read `43ff235b64caba5df9e262ea3b3f41bc4e7919cc9b8fa363cd2424d8ff52b2e8`
+  -- the same figure the release publishes.
+- The release the cask points at is upstream's tag `v0.41.6`, whose CI was
+  GREEN for the commit being tagged (upstream `a6a9e7c`, five jobs). The
+  tag sits two commits behind upstream's `main`, because upstream's main CI
+  is red on ANOTHER session's browser-test race -- upstream's own rule is
+  that a release is cut when CI is green for the COMMIT BEING TAGGED, and
+  that is what happened. The race is tracked in the estate's own plan
+  (servers ROADMAP E75).
+
+**What v0.41.6 does that v0.41.5 did not**
+
+- The gallery's push STORES the art in the device's own gallery, in the
+  device's own frame form, and then tells the panel to play the stored
+  page. The run says shown and stored apart: 37 of 40 files shown and 37
+  stored across four panels.
+- A device that was reached and stored NOTHING is a FAILED RUN, not a quiet
+  one. A file that could not be shown is a warning, named with its reason.
+
+**What could not be verified from this side**: the device's read-back query
+does not answer on any of the four panels (every one timed out, while other
+queries on the same panels do answer), and there is no screen readback. So
+the store is reported as the device's acknowledgement of the save, and the
+run prints that the read-back could not confirm it.
+
 ## The cask ships the release that registers the helpers, so the identity has something to address _(2026-10-21)_
 
 T2.3 had one thing left of it. The cask stopped the app's two detached
