@@ -5,7 +5,7 @@ lives in `CHANGELOG.md` and in git history; this file holds what is OPEN.
 
 ## Context (measured 2026-10-21)
 
-- 5 packages: `Formula/multitop.rb` (0.61.1), `Formula/ztools.rb` (3.9.1),
+- 5 packages: `Formula/multitop.rb` (0.62.0), `Formula/ztools.rb` (3.9.1),
   `Casks/antiknob.rb` (0.15.1), `Casks/cadgoose.rb` (1.83),
   `Casks/divoom-control.rb` (0.41.4 — its v0.41.4 release landed in this repo
   on 2026-10-21 as `9bcddc6`, and that release carries upstream commit
@@ -15,8 +15,10 @@ lives in `CHANGELOG.md` and in git history; this file holds what is OPEN.
   checkout sat 14 commits behind `origin` and read as "every package stale,
   multitop agent shas wrong" until it was fetched. It happened AGAIN on
   2026-10-21: this checkout sat ONE commit behind `origin` (`107d32b`
-  "ztools v3.9.1") until it was fetched, so the versions above are read from
-  the FETCHED tree (`git ls-remote origin refs/heads/main` vs the local HEAD).
+  "ztools v3.9.1") until it was fetched, and a producer pushed `3d7e868`
+  ("multitop v0.62.0") while this plan was being written, so the versions
+  above are read from the FETCHED tree (`git ls-remote origin refs/heads/main`
+  vs the local HEAD) and re-read after every fetch.
 - ONE implementation writes here by PATH: goh's `tools/release-kit/tap_bump.sh`
   (T2.1). It clones the tap, moves the version, every url and every sha256
   TOGETHER, runs THIS tap's `tools/gate.sh --full` in the clone, and pushes
@@ -62,7 +64,7 @@ Goal: one implementation of "bump a formula/cask", so a fix reaches every packag
   | package | tap commit(s) | message(s) | shape | verdict |
   | --- | --- | --- | --- | --- |
   | ztools | `e85fe06` (v3.8.1), `c0976f3` (v3.9.0), `107d32b` (v3.9.1) | `ztools v3.8.1`, `ztools v3.9.0`, `ztools v3.9.1` | `<name> v<version>` | lands the shape, but the shape is WEAK evidence here (see below) |
-  | multitop (monitor) | `4385954` (v0.56.0), `3fc5861` (v0.57.0), `c7d5b87` (v0.58.0), `621854f` (v0.58.1), `3412ec7` (v0.59.0), `7239340` (v0.60.0), `77b054c` (v0.61.0), `945f371` (v0.61.1) | `multitop v0.56.0` … `multitop v0.61.1` | `<name> v<version>` | PROVEN — the shape CHANGED at the move |
+  | multitop (monitor) | `4385954` (v0.56.0), `3fc5861` (v0.57.0), `c7d5b87` (v0.58.0), `621854f` (v0.58.1), `3412ec7` (v0.59.0), `7239340` (v0.60.0), `77b054c` (v0.61.0), `945f371` (v0.61.1), `3d7e868` (v0.62.0) | `multitop v0.56.0` … `multitop v0.62.0` | `<name> v<version>` | PROVEN — the shape CHANGED at the move |
   | cadgoose | `bd792ef` (v1.82), `fd57318` (v1.83) | `cadgoose v1.82`, `cadgoose v1.83` | `<name> v<version>` | PROVEN — the shape CHANGED at the move |
   | divoom-control | `be0259d` (v0.41.3) | `divoom-control v0.41.3` | `<name> v<version>` | PROVEN — the shape CHANGED at the move |
   | divoom-control, SECOND bump | `9bcddc6` (v0.41.4) | `cask: divoom-control v0.41.4 - the hot channel reaches the devices the app's settings name` | NOT the script's shape: a `cask: ` prefix, a suffix, and a body | NOT the path — it was written by hand (see Context) |
