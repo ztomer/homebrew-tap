@@ -9,6 +9,44 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The cask ships the release that registers the helpers, so the identity has something to address _(2026-10-21)_
+
+T2.3 had one thing left of it. The cask stopped the app's two detached
+helpers BY THEIR IDENTITY -- reading `~/.config/divoom-control/run/*.pid`,
+checking that the pid is still the SAME process, and only then stopping it --
+but the cask still shipped v0.41.3, and THAT release does not register the
+helpers. So the identity-based stop had nothing to address: the helpers were
+stopped only by the `quit:` stanza, and the orphan cases the old name pattern
+covered were not covered at all.
+
+**What shipped**
+
+- `Casks/divoom-control.rb`: v0.41.4 (`9bcddc6`), the release that carries
+  upstream's helper identity. Measured on the upstream TAG, not on HEAD: in
+  the `divoom-control` repository `git tag --contains 2010a31` answers exactly
+  one tag, `v0.41.4` (upstream tag dated 2026-10-21), and that tag's tree
+  carries `divoom_client/helper_identity.py`, `scripts/stop_helpers.sh` and
+  the identity path `~/.config/divoom-control/run/divoomd.pid`. Upstream's
+  CHANGELOG carries the work as RELEASED, in the v0.41.4 section -- not under
+  "Unreleased", where the 2026-10-20 measurement found it.
+- `ROADMAP.md`: T2.3 is DELETED from it. This file holds only what is OPEN,
+  and T2.3 is closed with nothing left.
+- `ROADMAP.md` T2.1's table: divoom-control's SECOND post-move bump
+  `9bcddc6` (v0.41.4) now has a row, and it is not the shape `tap_bump.sh`
+  writes. Its message is `cask: divoom-control v0.41.4 - the hot channel
+  reaches the devices the app's settings name`, with a body; `tap_bump.sh`
+  writes exactly `"${NAME} ${TAG}"` and no body. So that one bump was written
+  by hand, and the PATH is not proven for it. Every other bump in the table is
+  the script's one-line shape with an empty body.
+
+**Tests**: the tap's own gate, 7 steps green on 2026-10-21 -- structural, the
+tap consistency check, the consistency test, `brew style` (5 files, no
+offenses), the cask-floor test, the cask's identity-based uninstall test, the
+cask floor.
+
+**Followups**: ROADMAP T2.1 stays open for antiknob alone -- its next release
+is the proof, and nothing in this repo can hurry it.
+
 ## The cask stops the app's helpers BY THEIR IDENTITY, and the kill-by-name gate is empty again _(2026-10-20)_
 
 T2.3 was open for exactly one reason: the cask's uninstall stopped the app's
