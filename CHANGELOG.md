@@ -9,6 +9,47 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The cask ships v0.41.7, the release where the daemon knows what each panel IS _(2026-10-22)_
+
+The cask still pointed at v0.41.6, so the release that describes each panel
+-- one description, kept by the daemon, read by the web UI, the CLI and the
+MCP -- was shipped to nobody. It also carried the fix the estate's E75 item
+was about: the gallery's scroll test no longer races the app's own write,
+and that fix was in NO tag before this one.
+
+**What shipped**
+
+- `Casks/divoom-control.rb`: v0.41.7, and the digest of the asset the
+  release actually publishes. Measured on the RELEASED ASSET, not on a local
+  build: the 39,926,784-byte DMG fetched from the release reads
+  `7d9fc35d38fab877ef9eb98ec5918a10870fa51263eafaea4ee29698500400bc`.
+- The release the cask points at is upstream's tag `v0.41.7`, whose CI was
+  GREEN for the commit being tagged (upstream `d114ccf`, five jobs, CI run
+  39785191236).
+
+**What v0.41.7 does that v0.41.6 did not**
+
+- The daemon describes each panel -- the chassis, the vendor app's own
+  per-model switch for the radio, and the app's home list for the model --
+  and the clients read that description instead of keeping their own. The
+  radio card used to be offered to every panel whose NAME contained "tivoo"
+  or "ditoo"; it is now offered to the panels the app itself gives a radio.
+- The channel cards follow the panel IN HAND: they were decided at CONNECT
+  time, so selecting a second panel left the first panel's abilities on
+  screen.
+- The daemon refuses to tune a panel it knows has no radio, with the
+  `unsupported` code. A panel it cannot NAME is not refused: unknown is not
+  "no radio".
+- The gallery's scroll test waits for the app's OWN write and only then for
+  quiet. Stillness alone was satisfied by "the app has not written yet".
+
+**What could not be verified from this side**: the panels' own read-back
+query does not answer on this hardware, and there is no screen readback, so
+the gallery's store is reported as the device's acknowledgement of the save
+rather than a confirmation. The radio and the VJ channel are read from the
+app's per-model switches, which is the app's statement and not the panel's
+answer.
+
 ## The cask ships v0.41.6, the release that STORES the art in the device _(2026-10-21)_
 
 The owner's ruling was "art should be stored", and the cask still pointed at
