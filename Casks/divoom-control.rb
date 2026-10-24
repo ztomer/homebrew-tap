@@ -17,8 +17,16 @@ cask "divoom-control" do
   end
 
   # The app spawns two helpers — the daemon and the menu-bar agent — as
-  # DETACHED processes: each sits in its OWN session, so it does not die with
-  # the GUI and is reparented to launchd. A clean uninstall has to stop them.
+  # DETACHED processes: each sits in its OWN session, so it does not die by
+  # process-group signal when the GUI exits. In normal use they do NOT orphan
+  # to launchd: the GUI, the menu-bar agent, and the daemon share a lifecycle
+  # by default (`keep_daemon_alive` defaults false), so quitting the GUI or the
+  # menu-bar agent tears down the shared stack (stopping the daemon over its
+  # control socket and terminating the menu-bar agent via `quit_menubar_on_exit`).
+  # They only outlive the GUI and reparent to launchd when `keep_daemon_alive`
+  # is configured (or `quit_menubar_on_exit` is cleared), or when the GUI is
+  # killed or crashes before its shared-lifecycle quit handler runs. A clean
+  # uninstall has to stop them in those cases too.
   #
   # It stops them BY THEIR IDENTITY. The app registers every helper it spawns
   # in its run directory (~/.config/divoom-control/run/divoomd.pid and
