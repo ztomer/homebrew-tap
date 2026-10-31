@@ -45,3 +45,7 @@ GOH_UNREAPED_SPAWN_MIN_FILES=2        # read 3 (test files)
 # CadGoose G0.18 nothing ran these: gate.sh --full ran the structural layer alone, and
 # this line named a rust_gate the tap has no Rust for, glued to structural by a missing colon.
 GOH_CI_STEPS='"$GOH_DIR/gates/structural.sh" --full:bash tools/tap_consistency.sh:bash tools/tests/test_tap_consistency.sh:bash tools/brew_style.sh:bash tools/tests/test_cask_floor.sh:bash tools/tests/test_cask_uninstall_identity.sh:bash tools/cask_floor.sh'
+
+# A commit that ADDS a test names, in a `Red-run:` trailer, the mutation that
+# turned that test red (goh red-run, BACKLOG 4.11; owner OW.8, 2026-10-31).
+GOH_RED_RUN=1
