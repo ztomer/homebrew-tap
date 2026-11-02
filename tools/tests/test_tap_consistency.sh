@@ -136,5 +136,21 @@ expect "a README row with no package" \
     "README documents ghost but there is no Formula/ghost.rb or Casks/ghost.rb" \
     "$(readme_problems)"
 
+# ── an untracked package file never ships (D.TAPDIRT) ───────────────────────
+# A Formula/routines.rb for v0.15.0 sat untracked in the brew tap checkout for
+# ten weeks: no release wrote it (goh's release.sh bumps through a temp clone),
+# so it was a hand-write nobody committed, and the gate judged it as if it
+# shipped. A package file git does not track is named as exactly that.
+printf 'brew install ztomer/tap/clean\n' >"$tmp/README.md"
+git -C "$tmp" init -q
+git -C "$tmp" add Formula/clean.rb
+expect "a tracked package is not flagged" "" "$(untracked_problems)"
+printf 'class Stray < Formula\nend\n' >"$tmp/Formula/stray.rb"
+expect "an untracked package file" \
+    "Formula/stray.rb is untracked" \
+    "$(untracked_problems)"
+rm -rf "$tmp/Formula/stray.rb" "$tmp/.git"
+expect "outside a git checkout there is nothing to compare" "" "$(untracked_problems)"
+
 [ "$fails" -eq 0 ] || { printf '✗ %d tap_consistency test(s) failed\n' "$fails" >&2; exit 1; }
 printf '✓ tap_consistency: every planted defect went red, the clean fixtures stayed green\n'

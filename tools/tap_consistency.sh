@@ -31,7 +31,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   Cask:    `version "0.15.1"` with urls built from `v#{version}`
 # Both come back bare (no `v`) so one comparison covers both.
 file_version() {
-    local f="$1" v
+    local f="$1"
     # `sed ... > tmp; head -n1 < tmp`, NOT `sed ... | head -1`: the consumer exits
     # before EOF, the producer's next write dies of SIGPIPE, and under pipefail
     # that becomes the pipeline's status — a false that depends on load. The
@@ -133,7 +133,7 @@ readme_problems() {
     done < <(sed -nE 's|.*brew install (--cask )?ztomer/tap/([A-Za-z0-9._-]+).*|\2|p' "$readme" | sort -u)
     while IFS= read -r name; do
         shipped+=("$name")
-    done < <(find "$HERE/Formula" "$HERE/Casks" -name '*.rb' 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's|\.rb$||' | sort -u)
+    done < <(find "$HERE/Formula" "$HERE/Casks" -name '*.rb' -exec basename {} .rb \; 2>/dev/null | sort -u)
 
     for name in "${shipped[@]}"; do
         if ! contains_line "$name" "${documented[@]}"; then
@@ -149,6 +149,22 @@ readme_problems() {
 }
 
 
+# Untracked package files (D.TAPDIRT): a Formula/Cask on disk that git does not
+# track never ships -- nothing pushes it -- yet every other check here judges it
+# as if it did. Releases bump through a temporary clone (goh release.sh) and
+# commit via tap_bump.sh, so an untracked package is a hand-write: name it as
+# that, rather than letting it surface as a README-parity failure that sends
+# the operator to add a row for a package that does not exist.
+# Outside a git checkout (a test fixture) there is nothing to compare.
+untracked_problems() {
+    git -C "$HERE" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+    local f
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        printf '%s is untracked: no release writes here (bump through tap_bump.sh, or delete it)\n' "$f"
+    done < <(git -C "$HERE" ls-files --others --exclude-standard -- Formula Casks 2>/dev/null || true)
+}
+
 main() {
     local bad=0 f
     while IFS= read -r f; do
@@ -156,12 +172,20 @@ main() {
         out="$(tap_file_problems "$f" || true)"
         if [ -n "$out" ]; then
             bad=1
-            printf 'FAIL: %s\n' "${f#$HERE/}" >&2
+            printf 'FAIL: %s\n' "${f#"$HERE"/}" >&2
             printf '%s\n' "$out" | sed 's/^/  /' >&2
         else
-            printf 'ok: %s\n' "${f#$HERE/}"
+            printf 'ok: %s\n' "${f#"$HERE"/}"
         fi
     done < <(find "$HERE/Formula" "$HERE/Casks" -name '*.rb' 2>/dev/null | sort)
+
+    local untracked_out
+    untracked_out="$(untracked_problems)"
+    if [ -n "$untracked_out" ]; then
+        bad=1
+        printf 'FAIL: package files git does not track\n' >&2
+        printf '%s\n' "$untracked_out" | sed 's/^/  /' >&2
+    fi
 
     local readme_out
     readme_out="$(readme_problems)"

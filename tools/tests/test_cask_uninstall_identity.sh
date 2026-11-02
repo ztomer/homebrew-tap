@@ -111,8 +111,8 @@ state_of() {  # state_of <pid> -> the process's stat field, empty when it is gon
 }
 
 wait_gone() {  # wait_gone <pid>: 0 once the process is gone (a zombie counts)
-    local pid="$1" i st
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    local pid="$1" st
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
         st="$(state_of "$pid")"
         if [ -z "$st" ] || [ "${st#Z}" != "$st" ]; then
             wait "$pid" 2>/dev/null || true
@@ -160,7 +160,7 @@ expect "the stop says which helper it stopped" "stopped pid $pid1" "$out1"
 # ── 2. a RECYCLED pid is left alone ──────────────────────────────────────────
 run2="$tmp/run2"
 mkdir -p "$run2"
-spawn_sleeper; pid2="$SPAWN_PID"; started2="$SPAWN_STARTED"
+spawn_sleeper; pid2="$SPAWN_PID"
 write_identity "$run2/divoom-menubar.pid" "$pid2" "Mon Jan  1 00:00:00 1990"
 out2="$(run_stop DIVOOM_IDENTITY_DIR="$run2")"
 if alive "$pid2"; then
