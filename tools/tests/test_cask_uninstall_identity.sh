@@ -129,12 +129,22 @@ alive() {  # alive <pid>: 0 while the process is running (a zombie does not coun
     [ -n "$st" ] && [ "${st#Z}" = "$st" ]
 }
 
+
+# EVERY run of the stop goes through here. The stop also sweeps the installed
+# app's own executables (and the holder of the tray's lock), so an unsandboxed
+# run on a machine with Divoom installed would stop the developer's REAL tray
+# and daemon. Pointing it at a directory that holds no app makes a test run
+# unable to reach anything it did not spawn.
+run_stop() {  # run_stop [env args...]
+    env "$@" DIVOOM_APP_DIR="$tmp/no-apps-here" /bin/sh "$STOP"
+}
+
 # ── 1. the process the identity names IS stopped ─────────────────────────────
 run1="$tmp/run1"
 mkdir -p "$run1"
 spawn_sleeper; pid1="$SPAWN_PID"; started1="$SPAWN_STARTED"
 write_identity "$run1/divoomd.pid" "$pid1" "$started1"
-out1="$(env DIVOOM_IDENTITY_DIR="$run1" /bin/sh "$STOP")"
+out1="$(run_stop DIVOOM_IDENTITY_DIR="$run1")"
 if wait_gone "$pid1"; then
     pass "the stop killed the process its identity names"
 else
@@ -152,7 +162,7 @@ run2="$tmp/run2"
 mkdir -p "$run2"
 spawn_sleeper; pid2="$SPAWN_PID"; started2="$SPAWN_STARTED"
 write_identity "$run2/divoom-menubar.pid" "$pid2" "Mon Jan  1 00:00:00 1990"
-out2="$(env DIVOOM_IDENTITY_DIR="$run2" /bin/sh "$STOP")"
+out2="$(run_stop DIVOOM_IDENTITY_DIR="$run2")"
 if alive "$pid2"; then
     pass "a stale identity (the pid was reused) left the innocent process ALIVE"
 else
@@ -171,7 +181,7 @@ run3="$home3/.config/divoom-control/run"
 mkdir -p "$run3"
 spawn_sleeper; pid3="$SPAWN_PID"; started3="$SPAWN_STARTED"
 write_identity "$run3/divoomd.pid" "$pid3" "$started3"
-out3="$(env -u DIVOOM_IDENTITY_DIR HOME="$home3" /bin/sh "$STOP")"
+out3="$(run_stop -u DIVOOM_IDENTITY_DIR HOME="$home3")"
 if wait_gone "$pid3"; then
     pass "the stop found the identities under HOME"
 else
@@ -187,7 +197,7 @@ run5="$home5/.config/divoom-control/run"
 mkdir -p "$run5"
 spawn_sleeper; pid5="$SPAWN_PID"; started5="$SPAWN_STARTED"
 write_identity "$run5/divoomd.pid" "$pid5" "$started5"
-out4="$(env -u DIVOOM_IDENTITY_DIR HOME="$home4" /bin/sh "$STOP")"
+out4="$(run_stop -u DIVOOM_IDENTITY_DIR HOME="$home4")"
 if alive "$pid5"; then
     pass "with no identities under HOME, another home's helper was left ALIVE"
 else
@@ -216,7 +226,7 @@ SHIM
 chmod +x "$tmp/bin/id"
 spawn_sleeper; pid6="$SPAWN_PID"; started6="$SPAWN_STARTED"
 write_identity "$run6/divoomd.pid" "$pid6" "$started6"
-out6="$(env -u DIVOOM_IDENTITY_DIR -u HOME PATH="$tmp/bin:$PATH" /bin/sh "$STOP")"
+out6="$(run_stop -u DIVOOM_IDENTITY_DIR -u HOME PATH="$tmp/bin:$PATH")"
 if wait_gone "$pid6"; then
     pass "with HOME unset, the stop found the identities in the passwd home"
 else
@@ -229,7 +239,7 @@ run7="$tmp/run7"
 mkdir -p "$run7"
 printf '{"started": "Mon Jan  1 00:00:00 1990"}\n' >"$run7/no-pid.pid"
 printf '{"pid": 999999, "started": "Mon Jan  1 00:00:00 1990"}\n' >"$run7/gone.pid"
-out7="$(env DIVOOM_IDENTITY_DIR="$run7" /bin/sh "$STOP")"
+out7="$(run_stop DIVOOM_IDENTITY_DIR="$run7")"
 if [ ! -f "$run7/no-pid.pid" ] && [ ! -f "$run7/gone.pid" ]; then
     pass "an identity that names no process was cleared"
 else
@@ -252,6 +262,68 @@ if [[ "$cask_code" =~ $kb_pattern ]]; then
 else
     pass "the cask no longer kills a process by name"
 fi
+
+# ── 8. NO process the app can start survives, identity or not ────────────────
+# Since D.HELPER the app starts its helpers as helper apps under
+# Contents/Helpers (`open -n -g`). The menu-bar agent writes no identity file,
+# so the identity pass cannot see it, and a tray the user kept past the GUI
+# survived an uninstall (ROADMAP P1.19). Nor does the MCP server the GUI
+# starts (`divoomd mcp`). Two addresses reach them without a name pattern: the
+# executable's PATH inside the app being removed (a process running a binary
+# out of that bundle must die before the bundle goes), and the HOLDER of the
+# tray's single-instance lock, wherever the app was installed.
+sandbox_app="$tmp/Applications/Divoom.app/Contents"
+agent_exe="$sandbox_app/Helpers/Divoom Menubar.app/Contents/MacOS/divoom-menubar"
+daemon_exe="$sandbox_app/Helpers/divoomd.app/Contents/MacOS/divoomd"
+mkdir -p "$(dirname "$agent_exe")" "$(dirname "$daemon_exe")" "$tmp/elsewhere"
+for exe in "$agent_exe" "$daemon_exe" "$tmp/elsewhere/divoom-menubar"; do
+    # A copy of a system binary must be re-signed to run on Apple silicon.
+    cp /bin/sleep "$exe"
+    codesign -f -s - "$exe" >/dev/null 2>&1
+done
+run8="$tmp/run8"
+mkdir -p "$run8"
+: >"$run8/divoom-menubar.lock"
+
+spawn_exe() {  # spawn_exe <exe> [stdin-file] -> SPAWN_PID (no identity is written)
+    "$1" 300 <"${2:-/dev/null}" >/dev/null 2>&1 &
+    SPAWN_PID=$!
+    pids+=("$SPAWN_PID")
+}
+spawn_exe "$agent_exe";  pid_agent="$SPAWN_PID"
+spawn_exe "$daemon_exe"; pid_mcp="$SPAWN_PID"
+# A tray from an app installed somewhere else: only the lock it holds names it.
+spawn_exe "$tmp/elsewhere/divoom-menubar" "$run8/divoom-menubar.lock"; pid_lock="$SPAWN_PID"
+# A process that merely LOOKS like a helper, holding nothing of the app's.
+decoy_exe="$tmp/decoy/Divoom.app/Contents/MacOS/divoom-menubar"
+mkdir -p "$(dirname "$decoy_exe")"
+cp /bin/sleep "$decoy_exe"
+codesign -f -s - "$decoy_exe" >/dev/null 2>&1
+spawn_exe "$decoy_exe"; pid_decoy="$SPAWN_PID"
+sleep 0.3
+
+out8="$(env DIVOOM_APP_DIR="$tmp/Applications" DIVOOM_IDENTITY_DIR="$run8" /bin/sh "$STOP")"
+if wait_gone "$pid_agent"; then
+    pass "the menu-bar helper app (no identity file) did not survive the uninstall"
+else
+    fail "the menu-bar helper app (no identity file) SURVIVED the uninstall"
+fi
+if wait_gone "$pid_mcp"; then
+    pass "another process running out of the app's bundle did not survive"
+else
+    fail "another process running out of the app's bundle SURVIVED"
+fi
+if wait_gone "$pid_lock"; then
+    pass "the holder of the tray's lock did not survive, wherever its app lived"
+else
+    fail "the holder of the tray's lock SURVIVED"
+fi
+if alive "$pid_decoy"; then
+    pass "a process named like the app but not running out of it was left ALIVE"
+else
+    fail "a process named like the app but not running out of it was KILLED"
+fi
+expect "the stop says it stopped helpers by the address they hold" "by the address they hold" "$out8"
 
 [ "$fails" -eq 0 ] || { printf '✗ %d uninstall identity test(s) failed\n' "$fails" >&2; exit 1; }
 printf '✓ uninstall identity: the named helper is stopped, a recycled pid is left alone, and the identities are found in the user'"'"'s home\n'

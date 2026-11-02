@@ -9,6 +9,32 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The cask's uninstall stops the menu-bar helper app, and anything else running out of the bundle _(2026-11-02)_
+
+Since upstream `80119dc` (D.HELPER) the app starts its helpers as helper apps
+under `Contents/Helpers`, opened through LaunchServices. The menu-bar agent
+writes no identity file, and the uninstall stopped helpers only by identity, so
+a tray the user kept past the GUI (`quit_menubar_on_exit` off) survived
+`brew uninstall --cask divoom-control`, as did the MCP server the GUI starts.
+(upstream ROADMAP P1.19.)
+
+**What shipped**
+
+- `Casks/divoom-control.rb`: after the identity pass, the uninstall stops
+  every process that runs an executable out of `<appdir>/Divoom.app/Contents/`
+  (`DIVOOM_APP_DIR`, default `/Applications`) and the holder of the tray's
+  single-instance lock (`<run dir>/divoom-menubar.lock`), wherever the app was
+  installed. Both are ADDRESSES, not name patterns; a dev tree's binary and a
+  look-alike elsewhere are left alone. TERM, a short wait, then KILL for exactly
+  the pids still alive. The identity pass is unchanged (it became a function so
+  the new pass runs even when there is no identity directory).
+- `tools/tests/test_cask_uninstall_identity.sh`: section 8 starts a fake
+  menu-bar helper app, a fake `divoomd`, a lock-holding tray and a look-alike
+  decoy, none with an identity file, runs the cask's own script, and asserts
+  the first three are gone and the decoy is alive. Every run of the script now
+  goes through `run_stop`, which points `DIVOOM_APP_DIR` at an empty directory,
+  so a test run on a machine with Divoom installed cannot reach the real tray.
+
 ## The cask ships v0.41.7, the release where the daemon knows what each panel IS _(2026-10-22)_
 
 The cask still pointed at v0.41.6, so the release that describes each panel
