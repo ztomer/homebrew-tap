@@ -136,7 +136,7 @@ alive() {  # alive <pid>: 0 while the process is running (a zombie does not coun
 # and daemon. Pointing it at a directory that holds no app makes a test run
 # unable to reach anything it did not spawn.
 run_stop() {  # run_stop [env args...]
-    env "$@" DIVOOM_APP_DIR="$tmp/no-apps-here" /bin/sh "$STOP"
+    env "$@" /bin/sh "$STOP" "$tmp/no-apps-here"
 }
 
 # ── 1. the process the identity names IS stopped ─────────────────────────────
@@ -302,7 +302,7 @@ codesign -f -s - "$decoy_exe" >/dev/null 2>&1
 spawn_exe "$decoy_exe"; pid_decoy="$SPAWN_PID"
 sleep 0.3
 
-out8="$(env DIVOOM_APP_DIR="$tmp/Applications" DIVOOM_IDENTITY_DIR="$run8" /bin/sh "$STOP")"
+out8="$(env DIVOOM_IDENTITY_DIR="$run8" /bin/sh "$STOP" "$tmp/Applications")"
 if wait_gone "$pid_agent"; then
     pass "the menu-bar helper app (no identity file) did not survive the uninstall"
 else
@@ -324,6 +324,71 @@ else
     fail "a process named like the app but not running out of it was KILLED"
 fi
 expect "the stop says it stopped helpers by the address they hold" "by the address they hold" "$out8"
+
+# ── 9. the sweep finds the bundle wherever brew installed it ─────────────────
+# `brew install --cask --appdir=DIR` puts Divoom.app in DIR, and Homebrew keeps
+# that choice in the cask's own config. The sweep used to read $DIVOOM_APP_DIR
+# and otherwise assume /Applications, so a cask installed elsewhere left every
+# process running out of its bundle alive (queue D.UNINSTDIR; only the tray was
+# caught, by its lock). The appdir now reaches the script as an ARGUMENT the
+# cask fills from its own `appdir`, which Homebrew resolves per installation.
+# This section asks Homebrew itself what it would run for a given appdir
+# (`brew ruby` loads the cask with that config) and runs exactly that. The
+# environment variable stays set to a DECOY: it must not outrank the cask, and
+# a run that fell back to the real /Applications would reach a developer's
+# real tray and daemon -- so the decoy also keeps the pre-fix script off them.
+loader="$tmp/load_uninstall.rb"
+cat >"$loader" <<'RUBY'
+appdir, script_out, args_out = ARGV
+cask = Cask::CaskLoader.load("ztomer/tap/divoom-control")
+cask.config = Cask::Config.new(explicit: { appdir: appdir }) unless appdir.empty?
+directives = cask.artifacts.grep(Cask::Artifact::Uninstall).first.directives
+script = directives.fetch(:script)
+File.write(script_out, script.fetch(:args)[1])
+File.write(args_out, script.fetch(:args)[2..].join("\n") + "\n")
+puts script.fetch(:executable)
+RUBY
+
+run_brew_script() {  # run_brew_script <appdir|""> <identity-dir> -> stdout of the uninstall script
+    local appdir="$1" idir="$2" exe
+    local script="$tmp/brew_script.sh" argfile="$tmp/brew_args.txt"
+    exe="$(HOMEBREW_NO_AUTO_UPDATE=1 brew ruby "$loader" "$appdir" "$script" "$argfile")"
+    local args=()
+    while IFS= read -r line; do args+=("$line"); done <"$argfile"
+    env DIVOOM_APP_DIR="$tmp/no-apps-here" DIVOOM_IDENTITY_DIR="$idir" \
+        "$exe" -c "$(cat "$script")" "${args[@]}"
+}
+
+if command -v brew >/dev/null 2>&1; then
+    run9="$tmp/run9"
+    mkdir -p "$run9"
+    odd_apps="$tmp/Odd Apps Dir"
+    odd_exe="$odd_apps/Divoom.app/Contents/Helpers/divoomd.app/Contents/MacOS/divoomd"
+    mkdir -p "$(dirname "$odd_exe")"
+    cp /bin/sleep "$odd_exe"
+    codesign -f -s - "$odd_exe" >/dev/null 2>&1
+    spawn_exe "$odd_exe"; pid_odd="$SPAWN_PID"
+    sleep 0.3
+    out9="$(run_brew_script "$odd_apps" "$run9")"
+    if wait_gone "$pid_odd"; then
+        pass "a bundle in a non-default appdir (--appdir) did not survive the uninstall"
+    else
+        fail "a bundle in a non-default appdir (--appdir) SURVIVED the uninstall"
+    fi
+    expect "the stop says it stopped helpers by the address they hold" "by the address they hold" "$out9"
+
+    # Without --appdir Homebrew's default applies, and the script sweeps it. A
+    # fake process under the REAL /Applications is never spawned here; the
+    # directory the script decided to sweep is read off the arguments instead.
+    HOMEBREW_NO_AUTO_UPDATE=1 brew ruby "$loader" "" "$tmp/brew_script_default.sh" "$tmp/brew_args_default.txt" >/dev/null
+    if [ "$(sed -n 2p "$tmp/brew_args_default.txt")" = "/Applications" ]; then
+        pass "with no --appdir the cask hands the script Homebrew's default appdir"
+    else
+        fail "with no --appdir the cask hands the script: $(sed -n 2p "$tmp/brew_args_default.txt")"
+    fi
+else
+    printf '⚠ brew is not installed: the appdir channel (section 9) was not checked\n' >&2
+fi
 
 [ "$fails" -eq 0 ] || { printf '✗ %d uninstall identity test(s) failed\n' "$fails" >&2; exit 1; }
 printf '✓ uninstall identity: the named helper is stopped, a recycled pid is left alone, and the identities are found in the user'"'"'s home\n'

@@ -9,6 +9,25 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## The cask's uninstall sweeps the bundle wherever brew installed it _(2026-11-02)_
+
+The sweep for processes running out of the bundle read `$DIVOOM_APP_DIR` and
+otherwise assumed `/Applications`, so a cask installed with `--appdir` elsewhere
+left its helpers running (only the tray was caught, by its lock). (queue
+D.UNINSTDIR.)
+
+**What shipped**
+
+- `Casks/divoom-control.rb`: the uninstall script takes the appdir as its first
+  argument, filled from the cask's own `appdir` (which Homebrew resolves from
+  the installation's saved config), and `DIVOOM_APP_DIR` is gone. A guess that
+  an environment variable would be set was the defect; the cask knows.
+- `tools/tests/test_cask_uninstall_identity.sh`: section 9 asks `brew ruby` to
+  load the cask with a non-default appdir (one with a space in it), runs
+  exactly the script and arguments Homebrew would, and asserts a fake `divoomd`
+  inside that bundle is gone while a decoy `DIVOOM_APP_DIR` points elsewhere.
+  Measured red against the old script (the bundle survived).
+
 ## The cask's uninstall stops the menu-bar helper app, and anything else running out of the bundle _(2026-11-02)_
 
 Since upstream `80119dc` (D.HELPER) the app starts its helpers as helper apps

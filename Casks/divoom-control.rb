@@ -140,7 +140,14 @@ cask "divoom-control" do
     #     installed app is reached; a dev tree's binary is somewhere else.
     #   - the HOLDER of the tray's single-instance lock, wherever the app was
     #     installed (a different --appdir): the holder IS the running agent.
-    app_dir="${DIVOOM_APP_DIR:-/Applications}"
+    # The bundle's directory is the cask's appdir, so the path address follows
+    # the app wherever brew put it, and the lock covers a helper whose path it
+    # cannot name.
+    # The directory brew installed Divoom.app into: the cask's own `appdir`,
+    # which Homebrew resolves per installation (--appdir) and the uninstall
+    # passes as the first argument. Not an environment guess: a bundle in a
+    # non-default appdir was missed when this read $DIVOOM_APP_DIR (D.UNINSTDIR).
+    app_dir="${1:-/Applications}"
     holders=""
     lock="${identity_dir:+$identity_dir/divoom-menubar.lock}"
     if [ -n "$lock" ] && [ -e "$lock" ]; then
@@ -183,7 +190,7 @@ cask "divoom-control" do
   uninstall quit:   "com.divoom.control",
             script: {
               executable: "/bin/sh",
-              args:       ["-c", stop_helpers_by_identity],
+              args:       ["-c", stop_helpers_by_identity, "divoom-stop", appdir.to_s],
               sudo:       false,
             }
 
