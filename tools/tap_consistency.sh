@@ -25,6 +25,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=tools/tap_files.sh
+. "$(dirname "${BASH_SOURCE[0]}")/tap_files.sh"
 
 # The version a file DECLARES, in either of the two shapes this tap uses:
 #   Formula: a literal tag in the main url, .../archive/refs/tags/v0.55.0.tar.gz
@@ -123,7 +125,7 @@ contains_line() {
 # the early-exit-pipe defect this tap's own gate exists to catch, and this repo's
 # gate caught it here the first time.
 readme_problems() {
-    local problems=() name
+    local problems=() name f
     local readme="$HERE/README.md"
     [ -f "$readme" ] || { printf 'README.md is missing\n'; return; }
 
@@ -133,7 +135,7 @@ readme_problems() {
     done < <(sed -nE 's|.*brew install (--cask )?ztomer/tap/([A-Za-z0-9._-]+).*|\2|p' "$readme" | sort -u)
     while IFS= read -r name; do
         shipped+=("$name")
-    done < <(find "$HERE/Formula" "$HERE/Casks" -name '*.rb' -exec basename {} .rb \; 2>/dev/null | sort -u)
+    done < <(package_files | while IFS= read -r f; do basename "$f" .rb; done | sort -u)
 
     for name in "${shipped[@]}"; do
         if ! contains_line "$name" "${documented[@]}"; then
@@ -155,9 +157,9 @@ readme_problems() {
 # commit via tap_bump.sh, so an untracked package is a hand-write: name it as
 # that, rather than letting it surface as a README-parity failure that sends
 # the operator to add a row for a package that does not exist.
-# Outside a git checkout (a test fixture) there is nothing to compare.
+# Outside the tap's own git checkout (a test fixture) there is nothing to compare.
 untracked_problems() {
-    git -C "$HERE" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+    in_own_checkout || return 0
     local f
     while IFS= read -r f; do
         [ -n "$f" ] || continue
@@ -177,7 +179,7 @@ main() {
         else
             printf 'ok: %s\n' "${f#"$HERE"/}"
         fi
-    done < <(find "$HERE/Formula" "$HERE/Casks" -name '*.rb' 2>/dev/null | sort)
+    done < <(package_files)
 
     local untracked_out
     untracked_out="$(untracked_problems)"

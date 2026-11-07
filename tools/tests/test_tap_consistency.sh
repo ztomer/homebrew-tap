@@ -19,7 +19,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 mkdir -p "$tmp/tools" "$tmp/Formula" "$tmp/Casks" "$tmp/files"
-cp "$HERE/tools/tap_consistency.sh" "$tmp/tools/tap_consistency.sh"
+cp "$HERE/tools/tap_consistency.sh" "$HERE/tools/tap_files.sh" "$tmp/tools/"
 # shellcheck source=/dev/null
 . "$tmp/tools/tap_consistency.sh"
 
@@ -149,8 +149,38 @@ printf 'class Stray < Formula\nend\n' >"$tmp/Formula/stray.rb"
 expect "an untracked package file" \
     "Formula/stray.rb is untracked" \
     "$(untracked_problems)"
-rm -rf "$tmp/Formula/stray.rb" "$tmp/.git"
-expect "outside a git checkout there is nothing to compare" "" "$(untracked_problems)"
+# The stray must be named as untracked and NOTHING ELSE: it never enters the
+# README parity (which would send the operator to add a row for a package that
+# does not ship) and is never judged as a package (D.TAPDIRT, second half).
+expect "an untracked package file does not enter README parity" "" "$(readme_problems)"
+stray_run="$(main 2>&1 || true)"
+expect "an untracked package file is not judged as a package" "" \
+    "$(printf '%s\n' "$stray_run" | grep -E '^(ok|FAIL): Formula/stray.rb' || true)"
+expect "the run names the stray as untracked" "Formula/stray.rb is untracked" "$stray_run"
+expect "README parity stays green beside a stray" \
+    "ok: README.md documents every package on disk" "$stray_run"
+rm -f "$tmp/Formula/stray.rb"
+
+# Outside the tap's OWN checkout there is nothing to compare. The stray is
+# PRESENT here: with it gone the check passes whatever the guard does, and a
+# test that cannot fail proves nothing. A fixture NESTED in another repo is the
+# case that fails without the guard (git answers for the parent repo and calls
+# the stray untracked); a directory under no repo at all is the plain case.
+rm -rf "$tmp/.git"
+mkdir -p "$tmp/outer/fx/Formula"
+git -C "$tmp/outer" init -q
+printf 'class Stray < Formula\nend\n' >"$tmp/outer/fx/Formula/stray.rb"
+real_here="$HERE"
+HERE="$tmp/outer/fx"
+expect "a fixture nested in another repo has nothing to compare" "" "$(untracked_problems)"
+expect "a nested fixture still lists its package files" "stray.rb" "$(package_files)"
+HERE="$real_here"
+rm -rf "$tmp/outer"
+mkdir -p "$tmp/nogit/Formula"
+printf 'class Stray < Formula\nend\n' >"$tmp/nogit/Formula/stray.rb"
+HERE="$tmp/nogit"
+expect "outside any git checkout there is nothing to compare" "" "$(untracked_problems)"
+HERE="$real_here"
 
 [ "$fails" -eq 0 ] || { printf '✗ %d tap_consistency test(s) failed\n' "$fails" >&2; exit 1; }
 printf '✓ tap_consistency: every planted defect went red, the clean fixtures stayed green\n'

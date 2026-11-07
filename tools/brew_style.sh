@@ -17,6 +17,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=tools/tap_files.sh
+. "$(dirname "${BASH_SOURCE[0]}")/tap_files.sh"
 
 if ! command -v brew >/dev/null 2>&1; then
     msg="SKIPPED: brew is not installed, so 'brew style' did not run over this tap."
@@ -42,6 +44,8 @@ case "$work" in
           exit 1 ;;
 esac
 mkdir -p "$work/Formula" "$work/Casks"
-cp "$HERE"/Formula/*.rb "$work/Formula/"
-cp "$HERE"/Casks/*.rb "$work/Casks/"
+# Tracked package files only: a stray is named by tap_consistency, not styled here.
+while IFS= read -r f; do
+    cp "$f" "$work/${f#"$HERE"/}"
+done < <(package_files)
 brew style "$work"/Formula/*.rb "$work"/Casks/*.rb </dev/null
