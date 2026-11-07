@@ -333,14 +333,17 @@ expect "the stop says it stopped helpers by the address they hold" "by the addre
 # caught, by its lock). The appdir now reaches the script as an ARGUMENT the
 # cask fills from its own `appdir`, which Homebrew resolves per installation.
 # This section asks Homebrew itself what it would run for a given appdir
-# (`brew ruby` loads the cask with that config) and runs exactly that. The
+# (`brew ruby` loads THIS CHECKOUT's cask file with that config) and runs exactly that. The
 # environment variable stays set to a DECOY: it must not outrank the cask, and
 # a run that fell back to the real /Applications would reach a developer's
 # real tray and daemon -- so the decoy also keeps the pre-fix script off them.
 loader="$tmp/load_uninstall.rb"
 cat >"$loader" <<'RUBY'
-appdir, script_out, args_out = ARGV
-cask = Cask::CaskLoader.load("ztomer/tap/divoom-control")
+cask_file, appdir, script_out, args_out = ARGV
+# The CHECKOUT's cask, as source: loading "ztomer/tap/divoom-control" would read the
+# INSTALLED tap's copy, so a change under test (or an untapped machine) never
+# reached this section. brew refuses a bare path outside a tap, hence the content.
+cask = Cask::CaskLoader.load(File.read(cask_file))
 cask.config = Cask::Config.new(explicit: { appdir: appdir }) unless appdir.empty?
 directives = cask.artifacts.grep(Cask::Artifact::Uninstall).first.directives
 script = directives.fetch(:script)
@@ -352,7 +355,7 @@ RUBY
 run_brew_script() {  # run_brew_script <appdir|""> <identity-dir> -> stdout of the uninstall script
     local appdir="$1" idir="$2" exe
     local script="$tmp/brew_script.sh" argfile="$tmp/brew_args.txt"
-    exe="$(HOMEBREW_NO_AUTO_UPDATE=1 brew ruby "$loader" "$appdir" "$script" "$argfile")"
+    exe="$(HOMEBREW_NO_AUTO_UPDATE=1 brew ruby "$loader" "$CASK" "$appdir" "$script" "$argfile")"
     local args=()
     while IFS= read -r line; do args+=("$line"); done <"$argfile"
     env DIVOOM_APP_DIR="$tmp/no-apps-here" DIVOOM_IDENTITY_DIR="$idir" \
@@ -380,7 +383,7 @@ if command -v brew >/dev/null 2>&1; then
     # Without --appdir Homebrew's default applies, and the script sweeps it. A
     # fake process under the REAL /Applications is never spawned here; the
     # directory the script decided to sweep is read off the arguments instead.
-    HOMEBREW_NO_AUTO_UPDATE=1 brew ruby "$loader" "" "$tmp/brew_script_default.sh" "$tmp/brew_args_default.txt" >/dev/null
+    HOMEBREW_NO_AUTO_UPDATE=1 brew ruby "$loader" "$CASK" "" "$tmp/brew_script_default.sh" "$tmp/brew_args_default.txt" >/dev/null
     if [ "$(sed -n 2p "$tmp/brew_args_default.txt")" = "/Applications" ]; then
         pass "with no --appdir the cask hands the script Homebrew's default appdir"
     else
