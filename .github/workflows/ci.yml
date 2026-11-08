@@ -1,0 +1,58 @@
+# The gate of record, on every push and pull request (queue item CI.PUBLIC, owner
+# ruling 2026-11-08: GitHub-hosted Actions are free for PUBLIC repos; this tap is public).
+#
+# It runs the SAME command the local pre-push hook runs -- `tools/gate.sh --full` ->
+# gates_of_heck's local_ci.sh -> .gatesrc GOH_CI_STEPS -- so CI is neither weaker nor
+# stronger than the hook. macOS on Apple silicon, because `brew style` needs Homebrew's
+# Ruby and the casks target macOS.
+#
+# gates_of_heck is cloned at a NAMED release, never main. Raise GOH_TAG deliberately,
+# in its own commit, when the tap adopts a newer gate.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GOH_TAG: v0.71.0
+
+jobs:
+  gate:
+    name: the gate of record (tools/gate.sh --full)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      # GOH_DIR is set in a step: the `runner` context is unavailable at job level.
+      - name: GOH_DIR under the runner's temp
+        run: echo "GOH_DIR=$RUNNER_TEMP/gates_of_heck" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: gates_of_heck at its pinned release
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$GOH_TAG" https://github.com/ztomer/gates_of_heck "$GOH_DIR"
+          git -C "$GOH_DIR" describe --tags --exact-match
+
+      - name: Meet goh's tool floors
+        uses: ztomer/gates_of_heck/.github/actions/goh-floors@13d906fb78065e701446a943ceed26e5ce919d6a # v0.71.0
+        with:
+          goh-dir: ${{ env.GOH_DIR }}
+
+      - name: tools/gate.sh --full
+        env:
+          # cask_floor.sh reads the casks' upstream repos through `gh api`.
+          GH_TOKEN: ${{ github.token }}
+        run: env -u RUNNER_TRACKING_ID tools/gate.sh --full
