@@ -9,6 +9,16 @@ were wired on 2026-09-14 (`abf0b36`) and the bump history goes back to
 `3d3eea6` (2026-09-04, a flatten of 233 commits). This file starts where the
 tap began gating its own bumps.
 
+## Every package bumps through one path: T2.1 proven for all five _(2026-11-08)_
+
+antiknob, the last package without a release since the bump path moved to goh's
+`tools/release-kit/tap_bump.sh`, released v0.15.2 and it landed here as
+`cc92f15` "antiknob v0.15.2": the `<name> v<version>` shape with an empty body,
+where its last pre-move bump was `4dd9b12` "antiknob 0.15.1". antiknob's
+`release.sh` calls `tap_bump.sh` (line 95), so the path, not only the message,
+is the evidence. With multitop, cadgoose, divoom-control and ztools proven
+earlier, T2.1 is closed and leaves the ROADMAP. (queue TAP.T21.)
+
 ## The cask's uninstall sweeps the bundle wherever brew installed it _(2026-11-02)_
 
 The sweep for processes running out of the bundle read `$DIVOOM_APP_DIR` and
