@@ -49,3 +49,6 @@ GOH_CI_STEPS='"$GOH_DIR/gates/structural.sh" --full:bash tools/tap_consistency.s
 # A commit that ADDS a test names, in a `Red-run:` trailer, the mutation that
 # turned that test red (goh red-run, BACKLOG 4.11; owner OW.8, 2026-10-31).
 GOH_RED_RUN=1
+
+# The one plan (goh roadmap, GOH.ROADMAPGATE): open entries only; debt in roadmap_seed.json.
+GOH_ROADMAP=ROADMAP.md
