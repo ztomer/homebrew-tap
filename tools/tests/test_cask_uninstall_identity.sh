@@ -343,7 +343,10 @@ cask_file, appdir, script_out, args_out = ARGV
 # The CHECKOUT's cask, as source: loading "ztomer/tap/divoom-control" would read the
 # INSTALLED tap's copy, so a change under test (or an untapped machine) never
 # reached this section. brew refuses a bare path outside a tap, hence the content.
-cask = Cask::CaskLoader.load(File.read(cask_file))
+# The content loader is named outright: Homebrew 7 reads a STRING given to
+# CaskLoader.load as a cask NAME ("No Cask with this name exists"), so the
+# implicit form stopped loading content at all (2026-11-10, Homebrew 7.0.13).
+cask = Cask::CaskLoader::FromContentLoader.new(File.read(cask_file)).load(config: nil)
 cask.config = Cask::Config.new(explicit: { appdir: appdir }) unless appdir.empty?
 directives = cask.artifacts.grep(Cask::Artifact::Uninstall).first.directives
 script = directives.fetch(:script)
