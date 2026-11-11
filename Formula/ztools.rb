@@ -1,8 +1,8 @@
 class Ztools < Formula
   desc "Local LLM tools: weekend planner, twitter summarizer, model eval"
   homepage "https://github.com/ztomer/ztools"
-  url "https://github.com/ztomer/ztools/archive/refs/tags/v3.19.0.tar.gz"
-  sha256 "2e59f01861b71ec77d90325c5b394f945afc18a0c8644276313e95d118bb022b"
+  url "https://github.com/ztomer/ztools/archive/refs/tags/v3.20.0.tar.gz"
+  sha256 "18ac5f01895c88a808515ea791e0b84d262833276011752a0d59736bf21fb5a3"
   license "MIT"
   head "https://github.com/ztomer/ztools.git", branch: "main"
 
