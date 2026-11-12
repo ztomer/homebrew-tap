@@ -1,6 +1,6 @@
 cask "divoom-control" do
-  version "0.45.3"
-  sha256 "210188f19cd009076de4d1b6d638b6c2446b8331f479c636e599d8100852c8bf"
+  version "0.45.4"
+  sha256 "83c44248a25f6187cf3d101b1059016e5e93dd6e6b34c3081007d1b90681fe9c"
 
   url "https://github.com/ztomer/divoom_control/releases/download/v#{version}/Divoom-v#{version}.dmg"
   name "Divoom Control"
