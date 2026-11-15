@@ -36,8 +36,11 @@ jobs:
       - name: GOH_DIR under the runner's temp
         run: echo "GOH_DIR=$RUNNER_TEMP/gates_of_heck" >> "$GITHUB_ENV"
 
+      # fetch-depth: 0 fetches every tag: goh changelog-tags (in the structural layer) judges the
+      # changelog against them, and on a shallow, tagless clone it prints NOT JUDGED (GOH.WFPIN).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: gates_of_heck at its pinned release
