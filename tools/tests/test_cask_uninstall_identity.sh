@@ -23,6 +23,9 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CASK="$HERE/Casks/divoom-control.rb"
+GOH="${GOH_DIR:-${GOH:-$HOME/Projects/gates_of_heck}}"
+# shellcheck source=/dev/null
+. "$GOH/tui/lib.sh"
 
 tmp="$(mktemp -d)"
 pids=()
@@ -38,8 +41,8 @@ cleanup() {
 trap cleanup EXIT
 
 fails=0
-pass() { printf '✓ %s\n' "$1"; }
-fail() { printf '✗ %s\n' "$1" >&2; fails=$((fails + 1)); }
+pass() { ok "$1"; }
+fail() { err "$1"; fails=$((fails + 1)); }
 expect() {  # expect <name> <needle|""> <output>
     local name="$1" needle="$2" out="$3"
     if [ -z "$needle" ] && [ -n "$out" ]; then
@@ -61,7 +64,7 @@ awk '
 
 if [ ! -s "$STOP" ]; then
     fail "the cask's identity-based stop could not be extracted (the cask's shape changed?)"
-    printf '✗ %d uninstall identity test(s) failed\n' "$((fails + 1))" >&2
+    err "uninstall identity: $(counted "$((fails + 1))" test) failed"
     exit 1
 fi
 pass "the cask's identity-based stop was extracted from the cask file"
@@ -245,7 +248,7 @@ if [ ! -f "$run7/no-pid.pid" ] && [ ! -f "$run7/gone.pid" ]; then
 else
     fail "an identity that names no process was NOT cleared"
 fi
-expect "the stop says it stopped nothing" "stopped 0 helper(s)" "$out7"
+expect "the stop says it stopped nothing" "stopped 0 helper" "$out7"
 
 # ── 7. the cask does not kill a process by NAME any more ────────────────────
 cask_code="$(grep -v '^[[:space:]]*#' "$CASK" || true)"
@@ -393,8 +396,8 @@ if command -v brew >/dev/null 2>&1; then
         fail "with no --appdir the cask hands the script: $(sed -n 2p "$tmp/brew_args_default.txt")"
     fi
 else
-    printf '⚠ brew is not installed: the appdir channel (section 9) was not checked\n' >&2
+    warn "brew is not installed: the appdir channel (section 9) was not checked"
 fi
 
-[ "$fails" -eq 0 ] || { printf '✗ %d uninstall identity test(s) failed\n' "$fails" >&2; exit 1; }
-printf '✓ uninstall identity: the named helper is stopped, a recycled pid is left alone, and the identities are found in the user'"'"'s home\n'
+[ "$fails" -eq 0 ] || { err "uninstall identity: $(counted "$fails" test) failed"; exit 1; }
+ok "uninstall identity: the named helper is stopped, a recycled pid is left alone, and the identities are found in the user's home"

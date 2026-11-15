@@ -15,6 +15,9 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+GOH="${GOH_DIR:-${GOH:-$HOME/Projects/gates_of_heck}}"
+# shellcheck source=/dev/null
+. "$GOH/tui/lib.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
@@ -28,12 +31,12 @@ fails=0
 expect() {  # expect <name> <needle|""> <output>
     local name="$1" needle="$2" out="$3"
     if [ -z "$needle" ] && [ -n "$out" ]; then
-        printf '✗ %s: wanted green, got: %s\n' "$name" "$out" >&2; fails=$((fails + 1))
+        err "$name: wanted green, got: $out"; fails=$((fails + 1))
     elif [ -n "$needle" ] && [[ "$out" != *"$needle"* ]]; then
-        printf '✗ %s: wanted an error naming %q, got: %s\n' "$name" "$needle" "${out:-(green)}" >&2
+        err "$name: wanted an error naming $(printf '%q' "$needle"), got: ${out:-(green)}"
         fails=$((fails + 1))
     else
-        printf '✓ %s\n' "$name"
+        ok "$name"
     fi
 }
 
@@ -182,5 +185,5 @@ HERE="$tmp/nogit"
 expect "outside any git checkout there is nothing to compare" "" "$(untracked_problems)"
 HERE="$real_here"
 
-[ "$fails" -eq 0 ] || { printf '✗ %d tap_consistency test(s) failed\n' "$fails" >&2; exit 1; }
-printf '✓ tap_consistency: every planted defect went red, the clean fixtures stayed green\n'
+[ "$fails" -eq 0 ] || { err "tap_consistency: $(counted "$fails" test) failed"; exit 1; }
+ok "tap_consistency: every planted defect went red, the clean fixtures stayed green"

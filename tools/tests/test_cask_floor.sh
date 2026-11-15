@@ -18,12 +18,12 @@ trap 'rm -rf "$tmp"' EXIT
 expect() {  # expect <name> <needle|""> <output>
     local name="$1" needle="$2" out="$3"
     if [ -z "$needle" ] && [ -n "$out" ]; then
-        printf '✗ %s: wanted green, got: %s\n' "$name" "$out" >&2; fails=$((fails + 1))
+        err "$name: wanted green, got: $out"; fails=$((fails + 1))
     elif [ -n "$needle" ] && [[ "$out" != *"$needle"* ]]; then
-        printf '✗ %s: wanted an error naming %q, got: %s\n' "$name" "$needle" "${out:-(green)}" >&2
+        err "$name: wanted an error naming $(printf '%q' "$needle"), got: ${out:-(green)}"
         fails=$((fails + 1))
     else
-        printf '✓ %s\n' "$name"
+        ok "$name"
     fi
 }
 
@@ -73,5 +73,5 @@ fetch_producer_file() { return 1; }
 expect "end to end: fetch failure is red, not green" "could not read" \
     "$(check_cask x "$f" o/p cmake/F.cmake CG_MACOS_FLOOR 2>/dev/null)"
 
-[ "$fails" -eq 0 ] || { printf '✗ %d cask_floor test(s) failed\n' "$fails" >&2; exit 1; }
-printf '✓ cask_floor: every planted defect went red, the clean fixtures stayed green\n'
+[ "$fails" -eq 0 ] || { err "cask_floor: $(counted "$fails" test) failed"; exit 1; }
+ok "cask_floor: every planted defect went red, the clean fixtures stayed green"
