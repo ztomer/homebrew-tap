@@ -50,6 +50,7 @@ GOH_GIT_DEADLINE_MIN_FILES=9          # read 10 (shell and Python sources)
 GOH_INSTALLED_VERSION_MIN_FILES=1     # read 2 (Markdown files)
 GOH_MKTEMP_PORTABLE_MIN_FILES=11      # read 13 (shell sources)
 GOH_PLURAL_HEDGE_MIN_FILES=11         # read 13 (sources)
+GOH_DEAD_PORT_MIN_FILES=2               # read 3 (2026-11-16, GOH.FLOORREQ)
 GOH_WORKFLOW_PINS_MIN_REFS=2          # read 3 (workflow references)
 # Every step the pre-push gate runs (tools/gate.sh --full -> goh local_ci.sh). Until
 # CadGoose G0.18 nothing ran these: gate.sh --full ran the structural layer alone, and
