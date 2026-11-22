@@ -101,7 +101,7 @@ spawn_sleeper() {  # spawn_sleeper -> sets SPAWN_PID and SPAWN_STARTED
     /bin/sleep 300 >/dev/null 2>&1 &
     SPAWN_PID=$!
     pids+=("$SPAWN_PID")
-    SPAWN_STARTED="$(LC_ALL=C /bin/ps -p "$SPAWN_PID" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    SPAWN_STARTED="$(env LC_ALL=C /bin/ps -p "$SPAWN_PID" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
 }
 
 write_identity() {  # write_identity <path> <pid> <started>
