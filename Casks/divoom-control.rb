@@ -105,7 +105,7 @@ cask "divoom-control" do
             fi
             # `ps` pads its column, so both ends are trimmed: the app trimmed the
             # recorded value the same way when it wrote it.
-            live=$(LC_ALL=C /bin/ps -p "$pid" -o lstart= 2>/dev/null | /usr/bin/sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+            live=$(env LC_ALL=C /bin/ps -p "$pid" -o lstart= 2>/dev/null | /usr/bin/sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
             if [ -z "$live" ]; then
                 echo "divoom-control: $name: pid $pid is gone; removing the identity."
                 rm -f "$identity"
@@ -153,7 +153,7 @@ cask "divoom-control" do
     if [ -n "$lock" ] && [ -e "$lock" ]; then
         holders="$(/usr/sbin/lsof -t "$lock" 2>/dev/null || true)"
     fi
-    in_bundle="$(LC_ALL=C /bin/ps -axo pid=,comm= 2>/dev/null | /usr/bin/awk -v prefix="$app_dir/Divoom.app/Contents/" '
+    in_bundle="$(env LC_ALL=C /bin/ps -axo pid=,comm= 2>/dev/null | /usr/bin/awk -v prefix="$app_dir/Divoom.app/Contents/" '
         { sub(/^[ \t]+/, ""); pid = $1; sub(/^[0-9]+[ \t]+/, "") }
         index($0, prefix) == 1 { print pid }')"
     targets=""
